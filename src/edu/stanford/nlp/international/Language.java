@@ -19,6 +19,7 @@ public enum Language {
   German(           new NegraPennTreebankParserParams()),
   French(           new FrenchTreebankParserParams()),
   Hebrew(           new HebrewTreebankParserParams()),
+  Russian(          new RussianTreebankParserParams()),
   Spanish(          new SpanishTreebankParserParams()),
   UniversalChinese( new ChineseTreebankParserParams()),
   UniversalEnglish( new EnglishTreebankParserParams()),
