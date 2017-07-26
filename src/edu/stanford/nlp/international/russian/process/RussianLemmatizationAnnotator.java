@@ -3,6 +3,7 @@ package edu.stanford.nlp.international.russian.process;
 import edu.stanford.nlp.ling.CoreAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
+import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -35,18 +36,18 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
       new HashMap<String, List<Pair<String, String>>>();
   private final int nThreads;
 
-  static {
-    init();
-  }
-
-  private static void init() { // fix || singletone?
-    loadDictionary();
-  }
+  /*
+   * static { init(); }
+   * 
+   * private static void init() { // fix || singletone? loadDictionary(); }
+   */
 
   private static void loadDictionary() {
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("src//edu//stanford//nlp//international//russian//process//dict.tsv"),
+          new FileInputStream("C://Users//Ivan//workspace//manaslu8//stanford//CoreNLP//"
+              + "src//edu//stanford//nlp//international//russian//process//dict.tsv"),
+              //"src//edu//stanford//nlp//international//russian//process//dict.tsv"),
           "UTF-8"));
       for (String line; (line = br.readLine()) != null;) {
         String[] ln = line.split("\t");
@@ -73,6 +74,9 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
   }
 
   public RussianLemmatizationAnnotator(int numThreads) {
+    if (dict.isEmpty()) {
+      loadDictionary();
+    }
     this.nThreads = numThreads;
   }
 
@@ -162,8 +166,8 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
     Annotation annotation1 = pipeline.process("домами");
     Annotation annotation2 = pipeline.process("книги");
 
-    System.out.println(annotation1);
-    System.out.println(annotation2);
+    System.out.println(annotation1.get(TokensAnnotation.class).get(0).get(LemmaAnnotation.class));
+    System.out.println(annotation2.get(TokensAnnotation.class).get(0).get(LemmaAnnotation.class));
   }
 
 }
