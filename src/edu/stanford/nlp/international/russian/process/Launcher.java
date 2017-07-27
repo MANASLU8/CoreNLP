@@ -1,15 +1,11 @@
 package edu.stanford.nlp.international.russian.process;
 
-import edu.stanford.nlp.ling.CoreAnnotations;
-import edu.stanford.nlp.ling.CoreLabel;
-import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.pipeline.Annotation;
-import edu.stanford.nlp.pipeline.CoNLLOutputter;
 import edu.stanford.nlp.pipeline.CoNLLUOutputter;
 import edu.stanford.nlp.pipeline.DependencyParseAnnotator;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import edu.stanford.nlp.util.StringUtils;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -22,48 +18,72 @@ import java.util.Properties;
 
 public class Launcher {
 
-  private final static String DEFAULT_PATH = "results.conll";
+  private final static String DEFAULT_PATH_RESULTS = "results.conll";
+  private final static String DEFAULT_PATH_PARSER_MODEL =
+      "src//edu//stanford//nlp//models//pos-tagger//russian//nndep.rus.modelWithTestWithoutAlpha.txt.gz";
+  private final static String DEFAULT_PATH_TAGGER =
+      "src//edu//stanford//nlp//models//pos-tagger//russian//russian-ud-pos.tagger";
+  private final static String DEFAULT_PATH_MF_TAGGER =
+      "src//edu//stanford//nlp//models//pos-tagger//russian//russian-ud-mf.tagger";
+  private final static String DEFAULT_PATH_TEXT =
+      "src//edu//stanford//nlp//models//pos-tagger//russian//text.txt";
 
   public static void main(String[] args) throws FileNotFoundException, IOException {
+    String tagger = DEFAULT_PATH_TAGGER;
+    String taggerMF = DEFAULT_PATH_MF_TAGGER;
+    String parser = DEFAULT_PATH_PARSER_MODEL;
+    String pText = DEFAULT_PATH_TEXT;
+    String pResults = DEFAULT_PATH_RESULTS;
+    Properties pr = StringUtils.argsToProperties(args);
+    if (pr.contains("tagger")) {
+      tagger = pr.getProperty("tagger");
+    }
+    if (pr.contains("taggerMF")) {
+      taggerMF = pr.getProperty("taggerMF");
+    }
+    if (pr.contains("parser")) {
+      parser = pr.getProperty("parser");
+    }
+    if (pr.contains("pText")) {
+      pText = pr.getProperty("pText");
+    }
+    if (pr.contains("pResults")) {
+      pResults = pr.getProperty("pResults");
+    }
+
     Properties props = new Properties();
     props.setProperty("annotators", "tokenize, ssplit");
     StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-    pipeline.addAnnotator(new RussianMorphoAnnotator(
-        new MaxentTagger("C://Users//Ivan//Desktop//russian-ud-mf.tagger")));
-
+    pipeline.addAnnotator(new RussianMorphoAnnotator(new MaxentTagger(taggerMF)));
 
     Properties propsParser = new Properties();
-    propsParser.setProperty("model", "C://Users//Ivan//Desktop//nndep.rus.modelWithTest.txt.gz");
-    // propsParser.setProperty("model",
-    // "C://Users//Ivan//workspace//stanford//CoreNLP//nndep.rus.model.txt.gz");
-    propsParser.setProperty("tagger.model", "C://Users//Ivan//Desktop//russian-ud-pos.tagger");
+    propsParser.setProperty("model", parser);
+    propsParser.setProperty("tagger.model", tagger);
     pipeline.addAnnotator(new DependencyParseAnnotator(propsParser));
 
     pipeline.addAnnotator(new RussianLemmatizationAnnotator());
 
 
 
-    List<String> text = getText("C://Users//Ivan//Desktop//0000_co");
+    List<String> text = getText(pText);
     for (String line : text) {
       Annotation annotation = pipeline.process(line);
 
       if (args.length == 1) {
         CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(args[0], true));
       } else {
-        CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(DEFAULT_PATH, true));
+        CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(pResults, true));
       }
-    } 
-    
-    /*
-    String text = getTextStr("C://Users//Ivan//Desktop//0000_corenlpStr");
-      Annotation annotation = pipeline.process(text);
+    }
 
-      if (args.length == 1) {
-        CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(args[0], true));
-      } else {
-        CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(DEFAULT_PATH, true));
-      }
-    */
+    /*
+     * String text = getTextStr("C://Users//Ivan//Desktop//0000_corenlpStr"); Annotation annotation
+     * = pipeline.process(text);
+     * 
+     * if (args.length == 1) { CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(args[0],
+     * true)); } else { CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(DEFAULT_PATH,
+     * true)); }
+     */
   }
 
   private static List<String> getText(String file) throws IOException {
@@ -84,7 +104,7 @@ public class Launcher {
     }
     return res;
   }
-  
+
   private static String getTextStr(String file) throws IOException {
     List<String> res = new ArrayList<String>();
     BufferedReader br = null;
