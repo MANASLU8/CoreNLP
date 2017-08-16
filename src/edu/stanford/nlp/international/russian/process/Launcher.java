@@ -68,22 +68,8 @@ public class Launcher {
     List<String> text = getText(pText);
     for (String line : text) {
       Annotation annotation = pipeline.process(line);
-
-      if (args.length == 1) {
-        CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(args[0], true));
-      } else {
-        CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(pResults, true));
-      }
+      CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(pResults, true));
     }
-
-    /*
-     * String text = getTextStr("C://Users//Ivan//Desktop//0000_corenlpStr"); Annotation annotation
-     * = pipeline.process(text);
-     * 
-     * if (args.length == 1) { CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(args[0],
-     * true)); } else { CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(DEFAULT_PATH,
-     * true)); }
-     */
   }
 
   private static List<String> getText(String file) throws IOException {
