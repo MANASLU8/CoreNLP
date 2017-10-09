@@ -45,9 +45,7 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
   private static void loadDictionary() {
     try {
       BufferedReader br = new BufferedReader(new InputStreamReader(
-          new FileInputStream("C://Users//Ivan//workspace//manaslu8//stanford//CoreNLP//"
-              + "src//edu//stanford//nlp//international//russian//process//dict.tsv"),
-              //"src//edu//stanford//nlp//international//russian//process//dict.tsv"),
+          new FileInputStream("src//edu//stanford//nlp//international//russian//process//dict.tsv"),
           "UTF-8"));
       for (String line; (line = br.readLine()) != null;) {
         String[] ln = line.split("\t");
@@ -80,6 +78,7 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
     this.nThreads = numThreads;
   }
 
+  @Override
   public void annotate(Annotation annotation) {
 
     if (annotation.containsKey(CoreAnnotations.SentencesAnnotation.class)) {
@@ -147,10 +146,12 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
     return lemma;
   }
 
+  @Override
   public Set<Class<? extends CoreAnnotation>> requirementsSatisfied() {
     return Collections.emptySet(); // singleton(CoreAnnotations.LemmaAnnotation.class);
   }
 
+  @Override
   public Set<Class<? extends CoreAnnotation>> requires() {
     return new ArraySet<Class<? extends CoreAnnotation>>(CoreAnnotations.TextAnnotation.class,
         CoreAnnotations.TokensAnnotation.class, CoreAnnotations.SentencesAnnotation.class,

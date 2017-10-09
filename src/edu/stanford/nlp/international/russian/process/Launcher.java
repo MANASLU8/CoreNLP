@@ -68,7 +68,7 @@ public class Launcher {
     List<String> text = getText(pText);
     for (String line : text) {
       Annotation annotation = pipeline.process(line);
-      CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(pResults, true));
+      CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(pResults, false));
     }
   }
 
