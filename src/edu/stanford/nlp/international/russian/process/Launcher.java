@@ -20,13 +20,13 @@ public class Launcher {
 
   private final static String DEFAULT_PATH_RESULTS = "results.conll";
   private final static String DEFAULT_PATH_PARSER_MODEL =
-      "src//edu//stanford//nlp//models//pos-tagger//russian//nndep.rus.modelWithTestWithoutAlpha.txt.gz";
+      "src//edu//stanford//nlp//models//russian//nndep.rus.modelWithTestWithoutAlpha.txt.gz";
   private final static String DEFAULT_PATH_TAGGER =
-      "src//edu//stanford//nlp//models//pos-tagger//russian//russian-ud-pos.tagger";
+      "src//edu//stanford//nlp//models//russian//russian-ud-pos.tagger";
   private final static String DEFAULT_PATH_MF_TAGGER =
-      "src//edu//stanford//nlp//models//pos-tagger//russian//russian-ud-mf.tagger";
+      "src//edu//stanford//nlp//models//russian//russian-ud-mf.tagger";
   private final static String DEFAULT_PATH_TEXT =
-      "src//edu//stanford//nlp//models//pos-tagger//russian//text.txt";
+      "src//edu//stanford//nlp//models//russian//text.txt";
 
   public static void main(String[] args) throws FileNotFoundException, IOException {
     String tagger = DEFAULT_PATH_TAGGER;
@@ -35,19 +35,19 @@ public class Launcher {
     String pText = DEFAULT_PATH_TEXT;
     String pResults = DEFAULT_PATH_RESULTS;
     Properties pr = StringUtils.argsToProperties(args);
-    if (pr.contains("tagger")) {
+    if (pr.containsKey("tagger")) {
       tagger = pr.getProperty("tagger");
     }
-    if (pr.contains("taggerMF")) {
+    if (pr.containsKey("taggerMF")) {
       taggerMF = pr.getProperty("taggerMF");
     }
-    if (pr.contains("parser")) {
+    if (pr.containsKey("parser")) {
       parser = pr.getProperty("parser");
     }
-    if (pr.contains("pText")) {
+    if (pr.containsKey("pText")) {
       pText = pr.getProperty("pText");
     }
-    if (pr.contains("pResults")) {
+    if (pr.containsKey("pResults")) {
       pResults = pr.getProperty("pResults");
     }
 
