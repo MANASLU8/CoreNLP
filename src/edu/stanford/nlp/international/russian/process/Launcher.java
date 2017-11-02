@@ -1,10 +1,17 @@
 package edu.stanford.nlp.international.russian.process;
 
+import edu.stanford.nlp.io.IOUtils;
+import edu.stanford.nlp.io.RuntimeIOException;
+import edu.stanford.nlp.ling.CoreAnnotations;
+import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.CoNLLUOutputter;
 import edu.stanford.nlp.pipeline.DependencyParseAnnotator;
+import edu.stanford.nlp.pipeline.POSTaggerAnnotator;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
+import edu.stanford.nlp.process.CoreLabelTokenFactory;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
+import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.StringUtils;
 
 import java.io.BufferedReader;
@@ -34,6 +41,8 @@ public class Launcher {
     String parser = DEFAULT_PATH_PARSER_MODEL;
     String pText = DEFAULT_PATH_TEXT;
     String pResults = DEFAULT_PATH_RESULTS;
+    String pConll = null;
+    boolean mf = false;
     Properties pr = StringUtils.argsToProperties(args);
     if (pr.containsKey("tagger")) {
       tagger = pr.getProperty("tagger");
@@ -50,11 +59,22 @@ public class Launcher {
     if (pr.containsKey("pResults")) {
       pResults = pr.getProperty("pResults");
     }
+    if (pr.containsKey("pConll")) {
+      pConll = pr.getProperty("pConll");
+    } 
+    if (pr.containsKey("mf")) {
+      mf = true;
+    } 
 
     Properties props = new Properties();
     props.setProperty("annotators", "tokenize, ssplit");
     StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-    pipeline.addAnnotator(new RussianMorphoAnnotator(new MaxentTagger(taggerMF)));
+
+    if (mf) {
+      pipeline.addAnnotator(new RussianMorphoAnnotator(new MaxentTagger(taggerMF)));
+    } else {
+      pipeline.addAnnotator(new POSTaggerAnnotator(new MaxentTagger(tagger)));
+    }
 
     Properties propsParser = new Properties();
     propsParser.setProperty("model", parser);
@@ -63,13 +83,22 @@ public class Launcher {
 
     pipeline.addAnnotator(new RussianLemmatizationAnnotator());
 
-
-
-    List<String> text = getText(pText);
-    for (String line : text) {
-      Annotation annotation = pipeline.process(line);
-      CoNLLUOutputter.conllUPrint(annotation, new FileOutputStream(pResults, false));
+    FileOutputStream fos = new FileOutputStream(pResults, false);
+    if (pConll != null) {
+      List<CoreMap> sents = new ArrayList<>();
+      loadConllFileWithoutAnnotation(pConll, sents);
+      Annotation annotation = new Annotation(sents);
+      pipeline.annotate(annotation);
+      CoNLLUOutputter.conllUPrint(annotation, fos);
+    } else {
+      List<String> text = getText(pText);
+      for (String line : text) {
+        Annotation annotation = pipeline.process(line);
+        CoNLLUOutputter.conllUPrint(annotation, fos);
+        // pipeline.conllPrint(annotation, w);
+      }
     }
+    fos.flush();
   }
 
   private static List<String> getText(String file) throws IOException {
@@ -108,6 +137,79 @@ public class Launcher {
       }
     }
     return res.get(0);
+  }
+
+  public static void loadConllFile(String inFile, List<CoreMap> sents) {
+    CoreLabelTokenFactory tf = new CoreLabelTokenFactory(false);
+
+    BufferedReader reader = null;
+    try {
+      reader = IOUtils.readerFromString(inFile);
+
+      List<CoreLabel> sentenceTokens = new ArrayList<>();
+
+      for (String line : IOUtils.getLineIterable(reader, false)) {
+        String[] splits = line.split("\t");
+        if (splits.length < 10) {
+          if (sentenceTokens.size() > 0) {
+            CoreMap sentence = new CoreLabel();
+            sentence.set(CoreAnnotations.TokensAnnotation.class, sentenceTokens);
+            sents.add(sentence);
+            sentenceTokens = new ArrayList<>();
+          }
+        } else {
+          String word = splits[1], pos = splits[3], depType = splits[7];
+
+          int head = -1;
+          try {
+            head = Integer.parseInt(splits[6]);
+          } catch (NumberFormatException e) {
+            continue;
+          }
+
+          CoreLabel token = tf.makeToken(word, 0, 0);
+          token.setTag(pos);
+          token.set(CoreAnnotations.CoNLLDepParentIndexAnnotation.class, head);
+          token.set(CoreAnnotations.CoNLLDepTypeAnnotation.class, depType);
+          sentenceTokens.add(token);
+        }
+      }
+    } catch (IOException e) {
+      throw new RuntimeIOException(e);
+    } finally {
+      IOUtils.closeIgnoringExceptions(reader);
+    }
+  }
+
+  public static void loadConllFileWithoutAnnotation(String inFile, List<CoreMap> sents) {
+    CoreLabelTokenFactory tf = new CoreLabelTokenFactory(false);
+
+    BufferedReader reader = null;
+    try {
+      reader = IOUtils.readerFromString(inFile);
+
+      List<CoreLabel> sentenceTokens = new ArrayList<>();
+
+      for (String line : IOUtils.getLineIterable(reader, false)) {
+        String[] splits = line.split("\t");
+        if (splits.length < 10) {
+          if (sentenceTokens.size() > 0) {
+            CoreMap sentence = new CoreLabel();
+            sentence.set(CoreAnnotations.TokensAnnotation.class, sentenceTokens);
+            sents.add(sentence);
+            sentenceTokens = new ArrayList<>();
+          }
+        } else {
+          String word = splits[1];
+          CoreLabel token = tf.makeToken(word, 0, 0);
+          sentenceTokens.add(token);
+        }
+      }
+    } catch (IOException e) {
+      throw new RuntimeIOException(e);
+    } finally {
+      IOUtils.closeIgnoringExceptions(reader);
+    }
   }
 
 }
