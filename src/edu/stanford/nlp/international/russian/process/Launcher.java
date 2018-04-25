@@ -42,6 +42,7 @@ public class Launcher {
     String pText = DEFAULT_PATH_TEXT;
     String pResults = DEFAULT_PATH_RESULTS;
     String pConll = null;
+    String pLemmaDict = null;
     boolean mf = false;
     Properties pr = StringUtils.argsToProperties(args);
     if (pr.containsKey("tagger")) {
@@ -61,6 +62,8 @@ public class Launcher {
     }
     if (pr.containsKey("pConll")) {
       pConll = pr.getProperty("pConll");
+    } if (pr.containsKey("pLemmaDict")) {
+      pLemmaDict = pr.getProperty("pLemmaDict");
     } 
     if (pr.containsKey("mf")) {
       mf = true;
@@ -81,8 +84,12 @@ public class Launcher {
     propsParser.setProperty("tagger.model", tagger);
     pipeline.addAnnotator(new DependencyParseAnnotator(propsParser));
 
-    pipeline.addAnnotator(new RussianLemmatizationAnnotator());
-
+    if(pLemmaDict == null) {
+    	pipeline.addAnnotator(new RussianLemmatizationAnnotator());
+    } else {
+    	pipeline.addAnnotator(new RussianLemmatizationAnnotator(pLemmaDict));
+    }
+    
     FileOutputStream fos = new FileOutputStream(pResults, false);
     if (pConll != null) {
       List<CoreMap> sents = new ArrayList<>();
