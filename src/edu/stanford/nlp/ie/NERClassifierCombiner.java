@@ -1,9 +1,6 @@
 package edu.stanford.nlp.ie;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -44,6 +41,8 @@ public class NERClassifierCombiner extends ClassifierCombiner<CoreLabel>  {
   public static final Language NER_LANGUAGE_DEFAULT = Language.ENGLISH;
   public static final String NER_LANGUAGE_PROPERTY = "ner.language";
   public static final String NER_LANGUAGE_PROPERTY_BASE = "language";
+
+  public static final String USE_PRESET_NER_PROPERTY = "ner.usePresetNERTags";
 
   private final boolean useSUTime;
 
@@ -197,7 +196,7 @@ public class NERClassifierCombiner extends ClassifierCombiner<CoreLabel>  {
 
   public static final Set<String> DEFAULT_PASS_DOWN_PROPERTIES =
           CollectionUtils.asSet("encoding", "inputEncoding", "outputEncoding", "maxAdditionalKnownLCWords","map",
-                  "ner.combinationMode");
+                  "ner.combinationMode", "ner.usePresetNERTags");
 
   /** This factory method is used to create the NERClassifierCombiner used in NERCombinerAnnotator
    *  (and, thence, in StanfordCoreNLP).
@@ -291,6 +290,10 @@ public class NERClassifierCombiner extends ClassifierCombiner<CoreLabel>  {
   private static <INN extends CoreMap> void copyAnswerFieldsToNERField(List<INN> l) {
     for (INN m: l) {
       m.set(CoreAnnotations.NamedEntityTagAnnotation.class, m.get(CoreAnnotations.AnswerAnnotation.class));
+      Map<String,Double> labelToProb =
+          Collections.singletonMap(m.get(CoreAnnotations.NamedEntityTagAnnotation.class),
+              m.get(CoreAnnotations.AnswerProbAnnotation.class));
+      m.set(CoreAnnotations.NamedEntityTagProbsAnnotation.class, labelToProb);
     }
   }
 
@@ -393,6 +396,7 @@ public class NERClassifierCombiner extends ClassifierCombiner<CoreLabel>  {
 
   // write an NERClassifierCombiner to an ObjectOutputStream
 
+  @Override
   public void serializeClassifier(ObjectOutputStream oos) {
     try {
       // first write the ClassifierCombiner part to disk
@@ -442,8 +446,8 @@ public class NERClassifierCombiner extends ClassifierCombiner<CoreLabel>  {
    */
   private static Map<String, String> readRegexnerGazette(String mappingFile) {
     Map<String, String> mapping = new HashMap<>();
-    try {
-      for (String line : IOUtils.slurpReader(IOUtils.readerFromString(mappingFile.trim())).split("\n")) {
+    try (BufferedReader reader = IOUtils.readerFromString(mappingFile.trim())){
+      for (String line : IOUtils.slurpReader(reader).split("\n")) {
         String[] fields = line.split("\t");
         String key = fields[0];
         String target = fields[1];
@@ -509,7 +513,7 @@ public class NERClassifierCombiner extends ClassifierCombiner<CoreLabel>  {
         if (testFile != null) {
           ncc.classifyAndWriteAnswers(testFile, readerAndWriter, true);
         } else {
-          List<File> files = Arrays.asList(testFiles.split(",")).stream().map(File::new).collect(Collectors.toList());
+          List<File> files = Arrays.stream(testFiles.split(",")).map(File::new).collect(Collectors.toList());
           ncc.classifyFilesAndWriteAnswers(files, ncc.defaultReaderAndWriter(), true);
         }
       } else {

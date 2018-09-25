@@ -197,6 +197,9 @@ public class Timex implements Serializable {
     this.text = text;
     this.beginPoint = beginPoint;
     this.endPoint = endPoint;
+    this.xml = (val == null ? "<TIMEX3/>" :
+        String.format("<TIMEX3 tid=\"%s\" type=\"%s\" value=\"%s\">", this.tid, this.type, this.val)
+            +this.text+"</TIMEX3>");
   }
 
   private void init(Element element) {
@@ -245,7 +248,7 @@ public class Timex implements Serializable {
   public int endPoint() { return endPoint; }
 
   public String toString() {
-    return this.xml;
+    return (this.xml != null) ? this.xml : this.val;
   }
 
   @Override

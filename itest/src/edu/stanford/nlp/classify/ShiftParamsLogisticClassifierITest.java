@@ -2,28 +2,29 @@ package edu.stanford.nlp.classify;
 
 import edu.stanford.nlp.ling.BasicDatum;
 import edu.stanford.nlp.ling.Datum;
-import edu.stanford.nlp.ling.RVFDatum;
 import edu.stanford.nlp.stats.ClassicCounter;
-import junit.framework.Assert;
+
+import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Created by sonalg on 11/24/14.
+ * @author sonalg
+ * @version 11/24/14
  */
 public class ShiftParamsLogisticClassifierITest {
 
   private static <L, F> BasicDatum<L, F> newDatum(L label,
                                                   F[] features,
                                                   Double[] counts) {
-    ClassicCounter<F> counter = new ClassicCounter<F>();
+    ClassicCounter<F> counter = new ClassicCounter<>();
     for (int i = 0; i < features.length; i++) {
       counter.setCount(features[i], counts[i]);
     }
-    return new BasicDatum<L, F>(counter.keySet(), label);
+    return new BasicDatum<>(counter.keySet(), label);
   }
 
   private static void testStrBinaryDatums(double d1f1, double d1f2, double d2f1, double d2f2) throws Exception {
-    Dataset<String, String> trainData = new Dataset<String, String>();
+    Dataset<String, String> trainData = new Dataset<>();
     Datum<String, String> d1 = newDatum("alpha",
       new String[]{"f1", "f2"},
       new Double[]{d1f1, d1f2});
@@ -34,7 +35,7 @@ public class ShiftParamsLogisticClassifierITest {
     trainData.add(d2);
     LogPrior prior = new LogPrior(LogPrior.LogPriorType.QUADRATIC, 1.0, 0.1);
 
-    ShiftParamsLogisticClassifierFactory<String, String> lfc = new ShiftParamsLogisticClassifierFactory<String, String>(prior, 0.01);
+    ShiftParamsLogisticClassifierFactory<String, String> lfc = new ShiftParamsLogisticClassifierFactory<>(prior, 0.01);
     MultinomialLogisticClassifier<String, String> lc = lfc.trainClassifier(trainData);
     // Try the obvious (should get train data with 100% acc)
     Assert.assertEquals(d1.label(), lc.classOf(d1));
@@ -51,4 +52,5 @@ public class ShiftParamsLogisticClassifierITest {
 //    testStrBinaryDatums(0.0, 1.0, 1.0, 0.0);
 //    testStrBinaryDatums(1.0, 0.0, 0.0, 1.0);
   }
+
 }

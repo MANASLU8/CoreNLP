@@ -21,6 +21,7 @@ import edu.stanford.nlp.parser.common.ParserAnnotations;
 import edu.stanford.nlp.parser.common.ParserConstraint;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.Annotator;
+import edu.stanford.nlp.pipeline.ParserAnnotator;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations;
@@ -481,8 +482,9 @@ public abstract class CorefMentionFinder  {
     if (headPos == m.startIndex && sent.get(headPos).tag().equals("PU")) {
       headPos = m.endIndex - 1;
     }
-    if (sent.get(headPos).originalText().equals("自己") && m.endIndex != m.startIndex) {
-      headPos--;
+    if (sent.get(headPos).originalText().equals("自己") && m.endIndex != m.startIndex && headPos > m.startIndex) {
+      if (!sent.get(headPos-1).tag().equals("PU"))
+        headPos--;
     }
     m.headIndex = headPos;
     m.headWord = sent.get(headPos);
@@ -609,8 +611,8 @@ public abstract class CorefMentionFinder  {
     // this shouldn't happen
     //    throw new RuntimeException("RuleBasedCorefMentionFinder: ERROR: Failed to find head token");
     Redwood.log("RuleBasedCorefMentionFinder: Failed to find head token:\n" +
-                       "Tree is: " + root + "\n" +
-                       "token = |" + token + "|" + index + "|, approx=" + approximateness);
+        "Tree is: " + root + "\n" +
+        "token = |" + token + "|" + index + "|, approx=" + approximateness);
     for (Tree leaf : leaves) {
       if (token.equals(leaf.value())) {
         // log.info("Found it at position " + ind + "; returning " + leaf);
@@ -651,6 +653,10 @@ public abstract class CorefMentionFinder  {
   private Annotator getParser() {
     if(parserProcessor == null){
       parserProcessor = StanfordCoreNLP.getExistingAnnotator("parse");
+      if (parserProcessor == null) {
+        Properties emptyProperties = new Properties();
+        parserProcessor = new ParserAnnotator("coref.parse.md", emptyProperties);
+      }
       assert(parserProcessor != null);
     }
     return parserProcessor;

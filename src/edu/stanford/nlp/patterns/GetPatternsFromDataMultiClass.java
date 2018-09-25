@@ -15,7 +15,6 @@ import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-
 import javax.json.*;
 
 import edu.stanford.nlp.io.IOUtils;
@@ -49,39 +48,36 @@ import edu.stanford.nlp.util.logging.Redwood;
 /**
  * Given text and a seed list, this class gives more words like the seed words
  * by learning surface word or dependency patterns.
- * <p>
  *
  * The multi-threaded class ({@code nthread} parameter for number of
  * threads) takes as input.
  *
  * To use the default options, run
- * <p>
+ *
  * {@code java -mx1000m edu.stanford.nlp.patterns.GetPatternsFromDataMultiClass -file text_file -seedWordsFiles label1,seedwordlist1;label2,seedwordlist2;... -outDir output_directory (optional)}
- * <p>
+ *
  *
  * {@code fileFormat}: (Optional) Default is text. Valid values are text
  * (or txt) and ser, where the serialized file is of the type {@code Map<String,List<CoreLabel>>}.
- * <p>
+ *
  * {@code file}: (Required) Input file(s) (default assumed text). Can be
  * one or more of (concatenated by comma or semi-colon): file, directory, files
  * with regex in the filename (for example: "mydir/health-.*-processed.txt")
- * <p>
+ *
  * {@code seedWordsFiles}: (Required)
  * label1,file_seed_words1;label2,file_seed_words2;... where file_seed_words are
  * files with list of seed words, one in each line
- * <p>
+ *
  * {@code outDir}: (Optional) output directory where visualization/output
  * files are stored
- * <p>
+ *
  * For other flags, see individual comments for each flag.
  *
- * <p>
  * To use a properties file, see
  * projects/core/data/edu/stanford/nlp/patterns/surface/example.properties or patterns/example.properties (depends on which codebase you are using)
  * as an example for the flags and their brief descriptions. Run the code as:
  * {@code java -mx1000m -cp classpath edu.stanford.nlp.patterns.GetPatternsFromDataMultiClass -props dir-as-above/example.properties}
  *
- * <p>
  * IMPORTANT: Many flags are described in the classes
  * {@link ConstantsAndVariables}, {@link edu.stanford.nlp.patterns.surface.CreatePatterns}, and
  * {@link PhraseScorer}.
@@ -92,7 +88,7 @@ import edu.stanford.nlp.util.logging.Redwood;
 public class GetPatternsFromDataMultiClass<E extends Pattern> implements Serializable  {
 
   /** A logger for this class */
-  private static Redwood.RedwoodChannels log = Redwood.channels(GetPatternsFromDataMultiClass.class);
+  private static final Redwood.RedwoodChannels log = Redwood.channels(GetPatternsFromDataMultiClass.class);
 
   private static final long serialVersionUID = 1L;
 
@@ -106,33 +102,33 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
   /**
    *
    * RlogF is from Riloff 1996, when R's denominator is (pos+neg+unlabeled)
-   * <p>
+   *
    * RlogFPosNeg is when the R's denominator is just (pos+negative) examples
-   * <p>
+   *
    * PosNegOdds is just the ratio of number of positive words to number of
    * negative
-   * <p>
+   *
    * PosNegUnlabOdds is just the ratio of number of positive words to number of
    * negative (unlabeled words + negative)
-   * <p>
+   *
    * RatioAll is pos/(neg+pos+unlabeled)
-   * <p>
+   *
    * YanGarber02 is the modified version presented in
    * "Unsupervised Learning of Generalized Names"
-   * <p>
+   *
    * LOGREG is learning a logistic regression classifier to combine weights to
    * score a phrase (Same as PhEvalInPat, except score of an unlabeled phrase is
    * computed using a logistic regression classifier)
-   * <p>
+   *
    * LOGREGlogP is learning a logistic regression classifier to combine weights
    * to score a phrase (Same as PhEvalInPatLogP, except score of an unlabeled
    * phrase is computed using a logistic regression classifier)
-   * <p>
+   *
    * SqrtAllRatio is the pattern scoring used in Gupta et al. JAMIA 2014 paper
-   * <p>
+   *
    * Below F1SeedPattern and BPB based on paper
    * "Unsupervised Method for Automatics Construction of a disease dictionary..."
-   * <p>
+   *
    * Precision, Recall, and FMeasure (controlled by fbeta flag) is ranking the patterns using
    * their precision, recall and F_beta measure
    */
@@ -1736,12 +1732,16 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
           //make a copy of pats because we are changing numwordscompound etc.
           Set newpats = new HashSet<E>();
           boolean changedpats = false;
-          for (E s : pats) {
-            if(s instanceof SurfacePattern){
-              changedpats = true;
-              SurfacePattern snew = ((SurfacePattern) s).copyNewToken();
-              snew.setNumWordsCompound(PatternFactory.numWordsCompoundMapped.get(label));
-              newpats.add(snew);
+          // cdm added null test 2018-01-17 to fix NPE, but more needs to be changed to get DEPS option working,
+          // apparently including adding more code currently in research package.
+          if (pats != null) {
+            for (E s : pats) {
+              if (s instanceof SurfacePattern) {
+                changedpats = true;
+                SurfacePattern snew = ((SurfacePattern) s).copyNewToken();
+                snew.setNumWordsCompound(PatternFactory.numWordsCompoundMapped.get(label));
+                newpats.add(snew);
+              }
             }
           }
 
@@ -2233,10 +2233,26 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
   }
 
   public static String matchedTokensByPhraseJsonString(String phrase){
-    if(!Data.matchedTokensForEachPhrase.containsKey(phrase))
+    if ( ! Data.matchedTokensForEachPhrase.containsKey(phrase)) {
       return "";
-    JsonArrayBuilder arrobj =Json.createArrayBuilder();
-    for (Entry<String, List<Integer>> sen : Data.matchedTokensForEachPhrase.get(phrase).entrySet()) {
+    }
+    JsonArrayBuilder arrobj = jsonArrayBuilderFromMapCounter(Data.matchedTokensForEachPhrase.get(phrase));
+    return arrobj.build().toString();
+  }
+
+  public static String matchedTokensByPhraseJsonString(){
+    JsonObjectBuilder pats = Json.createObjectBuilder();
+
+    for (Entry<String, Map<String, List<Integer>>> en : Data.matchedTokensForEachPhrase.entrySet()) {
+      JsonArrayBuilder arrobj = jsonArrayBuilderFromMapCounter(en.getValue());
+      pats.add(en.getKey(), arrobj);
+    }
+    return pats.build().toString();
+  }
+
+  private static JsonArrayBuilder jsonArrayBuilderFromMapCounter(Map<String, List<Integer>> mapCounter) {
+    JsonArrayBuilder arrobj = Json.createArrayBuilder();
+    for (Entry<String, List<Integer>> sen : mapCounter.entrySet()) {
       JsonObjectBuilder obj = Json.createObjectBuilder();
       JsonArrayBuilder tokens = Json.createArrayBuilder();
       for(Integer i : sen.getValue()){
@@ -2245,27 +2261,7 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
       obj.add(sen.getKey(),tokens);
       arrobj.add(obj);
     }
-    return arrobj.build().toString();
-  }
-
-  public static String matchedTokensByPhraseJsonString(){
-    JsonObjectBuilder pats = Json.createObjectBuilder();
-
-    for (Entry<String, Map<String, List<Integer>>> en : Data.matchedTokensForEachPhrase.entrySet()) {
-
-      JsonArrayBuilder arrobj =Json.createArrayBuilder();
-      for (Entry<String, List<Integer>> sen : en.getValue().entrySet()) {
-        JsonObjectBuilder obj = Json.createObjectBuilder();
-        JsonArrayBuilder tokens = Json.createArrayBuilder();
-        for(Integer i : sen.getValue()){
-          tokens.add(i);
-        }
-        obj.add(sen.getKey(),tokens);
-        arrobj.add(obj);
-      }
-      pats.add(en.getKey(), arrobj);
-    }
-    return pats.build().toString();
+    return arrobj;
   }
 
   //numIterTotal = numIter + iterations from previously loaded model!
@@ -2346,7 +2342,7 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
 
   private void writePatternsToFile(Counter<E> pattern, BufferedWriter outFile) throws IOException {
     for (Entry<E, Double> en : pattern.entrySet())
-      outFile.write(en.getKey().toString() + "\t" + en.getValue() + "\n");
+      outFile.write(en.getKey() + "\t" + en.getValue() + "\n");
   }
 
   private void writeWordsToFile(Map<Integer, Counter<CandidatePhrase>> words, BufferedWriter outFile) throws IOException {
@@ -2410,9 +2406,9 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
    * Returns false if we ever encounter null for gold or guess. NOTE: The
    * current implementation of counting wordFN/FP is incorrect.
    */
-  public static boolean countResultsPerEntity(List<CoreLabel> doc, Counter<String> entityTP, Counter<String> entityFP, Counter<String> entityFN,
-      String background, Counter<String> wordTP, Counter<String> wordTN, Counter<String> wordFP, Counter<String> wordFN,
-      Class<? extends TypesafeMap.Key<String>> whichClassToCompare) {
+  private static boolean countResultsPerEntity(List<CoreLabel> doc, Counter<String> entityTP, Counter<String> entityFP, Counter<String> entityFN,
+                                               String background, Counter<String> wordTP, Counter<String> wordTN, Counter<String> wordFP, Counter<String> wordFN,
+                                               Class<? extends TypesafeMap.Key<String>> whichClassToCompare) {
     int index = 0;
     int goldIndex = 0, guessIndex = 0;
     String lastGold = background, lastGuess = background;
@@ -3601,7 +3597,7 @@ public class GetPatternsFromDataMultiClass<E extends Pattern> implements Seriali
       Properties props = StringUtils.argsToPropertiesWithResolve(args);
       GetPatternsFromDataMultiClass.<SurfacePattern>run(props);
     } catch (OutOfMemoryError e) {
-      System.out.println("Out of memory! Either change the memory alloted by running as java -mx20g ... for example if you want to allocate 20G. Or consider using batchProcessSents and numMaxSentencesPerBatchFile flags");
+      System.out.println("Out of memory! Either change the memory allotted by running as java -mx20g ... for example if you want to allocate 20G. Or consider using batchProcessSents and numMaxSentencesPerBatchFile flags");
       log.warn(e);
     } catch (Exception e) {
       log.warn(e);

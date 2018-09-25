@@ -139,7 +139,7 @@ public class ArrayMath {
   // OPERATIONS WITH SCALAR - DESTRUCTIVE
 
   /**
-   * Increases the values in this array by b. Does it in place.
+   * Increases the values in the first array a by b. Does it in place.
    *
    * @param a The array
    * @param b The amount by which to increase each item
@@ -283,15 +283,21 @@ public class ArrayMath {
 
   public static void pairwiseAddInPlace(float[] to, float[] from) {
     if (to.length != from.length) {
-      throw new RuntimeException("to length:" + to.length + " from length:" + from.length);
+      throw new IllegalArgumentException("to length:" + to.length + " from length:" + from.length);
     }
     for (int i = 0; i < to.length; i++) {
       to[i] = to[i] + from[i];
     }
   }
+
+  /**
+   * Add the two 1d arrays in place of {@code to}.
+   *
+   * @throws java.lang.IllegalArgumentException If {@code to} and {@code from} are not of the same dimensions
+   */
   public static void pairwiseAddInPlace(double[] to, double[] from) {
     if (to.length != from.length) {
-      throw new RuntimeException("to length:" + to.length + " from length:" + from.length);
+      throw new IllegalArgumentException("to length:" + to.length + " from length:" + from.length);
     }
     for (int i = 0; i < to.length; i++) {
       to[i] = to[i] + from[i];
@@ -300,7 +306,7 @@ public class ArrayMath {
 
   public static void pairwiseAddInPlace(double[] to, int[] from) {
     if (to.length != from.length) {
-      throw new RuntimeException();
+      throw new IllegalArgumentException();
     }
     for (int i = 0; i < to.length; i++) {
       to[i] = to[i] + from[i];
@@ -309,12 +315,27 @@ public class ArrayMath {
 
   public static void pairwiseAddInPlace(double[] to, short[] from) {
     if (to.length != from.length) {
-      throw new RuntimeException();
+      throw new IllegalArgumentException();
     }
     for (int i = 0; i < to.length; i++) {
       to[i] = to[i] + from[i];
     }
   }
+
+  /**
+   * Add the two 2d arrays and write the answer in place of {@code m1}.
+   *
+   * @throws IllegalArgumentException If {@code m1} and {@code m2} are not of the same dimensions
+   */
+  public static void addInPlace(double[][] m1, double[][] m2) {
+    if (m1.length != m2.length) {
+      throw new IllegalArgumentException();
+    }
+    for (int i = 0; i < m1.length; i++) {
+      pairwiseAddInPlace(m1[i], m2[i]);
+    }
+  }
+
 
   public static void pairwiseSubtractInPlace(double[] to, double[] from) {
     if (to.length != from.length) {
@@ -695,9 +716,9 @@ public class ArrayMath {
    * @return 1-norm of a
    */
   public static double norm_1(double[] a) {
-    double sum = 0;
+    double sum = 0.0;
     for (double anA : a) {
-      sum += (anA < 0 ? -anA : anA);
+      sum += Math.abs(anA);
     }
     return sum;
   }
@@ -709,9 +730,9 @@ public class ArrayMath {
    * @return 1-norm of a
    */
   public static double norm_1(float[] a) {
-    double sum = 0;
+    double sum = 0.0;
     for (float anA : a) {
-      sum += (anA < 0 ? -anA : anA);
+      sum += Math.abs(anA);
     }
     return sum;
   }
@@ -724,7 +745,7 @@ public class ArrayMath {
    * @return Euclidean norm of a
    */
   public static double norm(double[] a) {
-    double squaredSum = 0;
+    double squaredSum = 0.0;
     for (double anA : a) {
       squaredSum += anA * anA;
     }
@@ -738,7 +759,7 @@ public class ArrayMath {
    * @return Euclidean norm of a
    */
   public static double norm(float[] a) {
-    double squaredSum = 0;
+    double squaredSum = 0.0;
     for (float anA : a) {
       squaredSum += anA * anA;
     }
@@ -2090,30 +2111,6 @@ public class ArrayMath {
     }
     return result;
   }
-
-  public static double[][] covariance(double[][] data) {
-    double[] means = new double[data.length];
-    for (int i = 0; i < means.length; i++) {
-      means[i] = mean(data[i]);
-    }
-
-    double[][] covariance = new double[means.length][means.length];
-    for (int i = 0; i < data[0].length; i++) {
-      for (int j = 0; j < means.length; j++) {
-        for (int k = 0; k < means.length; k++) {
-          covariance[j][k] += (means[j]-data[j][i])*(means[k]-data[k][i]);
-        }
-      }
-    }
-
-    for (int i = 0; i < covariance.length; i++) {
-      for (int j = 0; j < covariance[i].length; j++) {
-        covariance[i][j] = Math.sqrt(covariance[i][j])/(data[0].length);
-      }
-    }
-    return covariance;
-  }
-
 
   public static void addMultInto(double[] a, double[] b, double[] c, double d) {
     for (int i=0; i<a.length; i++) {

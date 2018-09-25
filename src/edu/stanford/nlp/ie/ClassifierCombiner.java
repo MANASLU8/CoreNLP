@@ -262,6 +262,10 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
 
   private void loadClassifiers(Properties props, List<String> paths) throws IOException {
     baseClassifiers = new ArrayList<>();
+    if (PropertiesUtils.getBool(props, "ner.usePresetNERTags", false)) {
+      AbstractSequenceClassifier<IN> presetASC = new PresetSequenceClassifier(props);
+      baseClassifiers.add(presetASC);
+    }
     for(String path: paths){
       AbstractSequenceClassifier<IN> cls = loadClassifierFromPath(props, path);
       baseClassifiers.add(cls);
@@ -384,6 +388,7 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
     boolean insideAuxTag = false;
     boolean auxTagValid = true;
     String prevAnswer = background;
+    Double prevAnswerProb = null;
     Collection<INN> constituents = new ArrayList<>();
 
     Iterator<INN> auxIterator = auxDocument.listIterator();
@@ -392,6 +397,7 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
       String mainAnswer = wMain.get(CoreAnnotations.AnswerAnnotation.class);
       INN wAux = auxIterator.next();
       String auxAnswer = wAux.get(CoreAnnotations.AnswerAnnotation.class);
+      Double auxAnswerProb = wAux.get(CoreAnnotations.AnswerProbAnnotation.class);
       boolean insideMainTag = !mainAnswer.equals(background);
 
       /* if the auxiliary classifier gave it one of the labels unique to
@@ -401,6 +407,8 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
           if (auxTagValid){
             for (INN wi : constituents) {
               wi.set(CoreAnnotations.AnswerAnnotation.class, prevAnswer);
+              if (prevAnswerProb != null)
+                wi.set(CoreAnnotations.AnswerProbAnnotation.class, prevAnswerProb);
             }
           }
           auxTagValid = true;
@@ -409,12 +417,15 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
         insideAuxTag = true;
         if (insideMainTag) { auxTagValid = false; }
         prevAnswer = auxAnswer;
+        prevAnswerProb = auxAnswerProb;
         constituents.add(wMain);
       } else {
         if (insideAuxTag) {
           if (auxTagValid){
             for (INN wi : constituents) {
               wi.set(CoreAnnotations.AnswerAnnotation.class, prevAnswer);
+              if (prevAnswerProb != null)
+                wi.set(CoreAnnotations.AnswerProbAnnotation.class, prevAnswerProb);
             }
           }
           constituents = new ArrayList<>();
@@ -422,12 +433,15 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
         insideAuxTag=false;
         auxTagValid = true;
         prevAnswer = background;
+        prevAnswerProb = null;
       }
     }
     // deal with a sequence final auxLabel
     if (auxTagValid){
       for (INN wi : constituents) {
         wi.set(CoreAnnotations.AnswerAnnotation.class, prevAnswer);
+        if (prevAnswerProb != null)
+          wi.set(CoreAnnotations.AnswerProbAnnotation.class, prevAnswerProb);
       }
     }
   }
@@ -451,6 +465,7 @@ public class ClassifierCombiner<IN extends CoreMap & HasWord> extends AbstractSe
     // classify(List<IN>) is supposed to work in place, so add AnswerAnnotation to tokens!
     for (int i = 0, sz = output.size(); i < sz; i++) {
       tokens.get(i).set(CoreAnnotations.AnswerAnnotation.class, output.get(i).get(CoreAnnotations.AnswerAnnotation.class));
+      tokens.get(i).set(CoreAnnotations.AnswerProbAnnotation.class, output.get(i).get(CoreAnnotations.AnswerProbAnnotation.class));
     }
     baseOutputs.add(tokens);
 

@@ -1,33 +1,36 @@
 package edu.stanford.nlp.pipeline;
 
-import junit.framework.TestCase;
-
 import java.util.List;
 import java.util.Properties;
+
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
 
-public class ChineseSegmenterAnnotatorITest extends TestCase {
-  StanfordCoreNLP pipeline = null;
 
-  @Override
-  public void setUp()
-    throws Exception
-  {
+public class ChineseSegmenterAnnotatorITest {
+
+  private StanfordCoreNLP pipeline; // = null
+
+  @Before
+  public void setUp() throws Exception {
     if (pipeline != null) {
       return;
     }
     Properties props = new Properties();
     props.setProperty("annotators", "cseg");
     props.setProperty("customAnnotatorClass.cseg", "edu.stanford.nlp.pipeline.ChineseSegmenterAnnotator");
-    props.setProperty("cseg.model", "/u/nlp/data/gale/segtool/stanford-seg/classifiers-2010/05202008-ctb6.processed-chris6.lex.gz");
-    props.setProperty("cseg.sighanCorporaDict", "/u/nlp/data/gale/segtool/stanford-seg/releasedata");
-    props.setProperty("cseg.serDictionary", "/u/nlp/data/gale/segtool/stanford-seg/classifiers/dict-chris6.ser.gz");
+    props.setProperty("cseg.model", "edu/stanford/nlp/models/segmenter/chinese/ctb.gz");
+    props.setProperty("cseg.sighanCorporaDict", "edu/stanford/nlp/models/segmenter/chinese");
+    props.setProperty("cseg.serDictionary", "edu/stanford/nlp/models/segmenter/chinese/dict-chris6.ser.gz");
     props.setProperty("cseg.sighanPostProcessing", "true");
     pipeline = new StanfordCoreNLP(props);
   }
 
+  @Test
   public void testPipeline() {
     testOne("你马上回来北京吗？",
         new String[]{"你", "马上", "回来", "北京", "吗", "？"},
@@ -53,6 +56,12 @@ public class ChineseSegmenterAnnotatorITest extends TestCase {
           "希望", "你们", "都", "能", "看看", "。"},
         new int[]{0, 2, 3, 4, 5, 7, 8, 86, 88, 90, 91, 92, 94},
         new int[]{2, 3, 4, 5, 7, 8, 84, 88, 90, 91, 92, 94, 95});
+
+    // Check still works with non-BMP chars
+    testOne("买点咖啡提点精神\uD83D\uDE0A",
+            new String[] { "买", "点", "咖啡", "提", "点", "精神", "\uD83D\uDE0A" },
+            new int[] { 0, 1, 2, 4, 5, 6, 8 },
+            new int[] { 1, 2, 4, 5, 6, 8, 10});
   }
 
   private void testOne(String query, String[] expectedWords, int[] expectedBeginPositions, int[] expectedEndPositions) {
@@ -60,11 +69,12 @@ public class ChineseSegmenterAnnotatorITest extends TestCase {
     pipeline.annotate(annotation);
 
     List<CoreLabel> tokens = annotation.get(TokensAnnotation.class);
-    assertEquals(expectedWords.length, tokens.size());
+    Assert.assertEquals(expectedWords.length, tokens.size());
     for (int i = 0; i < expectedWords.length; ++i) {
-      assertEquals(expectedWords[i], tokens.get(i).word());
-      assertEquals(expectedBeginPositions[i], tokens.get(i).beginPosition());
-      assertEquals(expectedEndPositions[i], tokens.get(i).endPosition());
+      Assert.assertEquals(expectedWords[i], tokens.get(i).word());
+      Assert.assertEquals(expectedBeginPositions[i], tokens.get(i).beginPosition());
+      Assert.assertEquals(expectedEndPositions[i], tokens.get(i).endPosition());
     }
   }
+
 }

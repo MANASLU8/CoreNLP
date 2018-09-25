@@ -2,8 +2,9 @@ package edu.stanford.nlp.classify;
 
 import edu.stanford.nlp.ling.RVFDatum;
 import edu.stanford.nlp.stats.ClassicCounter;
-import junit.framework.Assert;
-import junit.framework.TestCase;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,16 +12,16 @@ import java.util.List;
 /**
  *
  */
-public class LinearClassifierITest extends TestCase {
+public class LinearClassifierITest {
 
   private static <L, F> RVFDatum<L, F> newDatum(L label,
                                                 F[] features,
                                                 Double[] counts) {
-    ClassicCounter<F> counter = new ClassicCounter<F>();
+    ClassicCounter<F> counter = new ClassicCounter<>();
     for (int i = 0; i < features.length; i++) {
       counter.setCount(features[i], counts[i]);
     }
-    return new RVFDatum<L, F>(counter, label);
+    return new RVFDatum<>(counter, label);
   }
 
   /**
@@ -29,7 +30,7 @@ public class LinearClassifierITest extends TestCase {
    * @throws Exception
    */
   private static void testStrBinaryDatums(double d1f1, double d1f2, double d2f1, double d2f2) throws Exception {
-    RVFDataset<String, String> trainData = new RVFDataset<String, String>();
+    RVFDataset<String, String> trainData = new RVFDataset<>();
     RVFDatum<String, String> d1 = newDatum("alpha",
       new String[]{"f1", "f2"},
       new Double[]{d1f1, d1f2});
@@ -38,26 +39,28 @@ public class LinearClassifierITest extends TestCase {
       new Double[]{d2f1, d2f2});
     trainData.add(d1);
     trainData.add(d2);
-    LinearClassifierFactory<String, String> lfc = new LinearClassifierFactory<String, String>();
+    LinearClassifierFactory<String, String> lfc = new LinearClassifierFactory<>();
     LinearClassifier<String, String> lc = lfc.trainClassifier(trainData);
     // Try the obvious (should get train data with 100% acc)
     Assert.assertEquals(d1.label(), lc.classOf(d1));
     Assert.assertEquals(d2.label(), lc.classOf(d2));
   }
 
+  @Test
   public void testStrBinaryDatums() throws Exception {
     testStrBinaryDatums(-1.0, 0.0, 1.0, 0.0);
     testStrBinaryDatums(1.0, 0.0, -1.0, 0.0);
     testStrBinaryDatums(0.0, 1.0, 0.0, -1.0);
-    testStrBinaryDatums(0.0, -1.0, 0.0, 1.0);    
+    testStrBinaryDatums(0.0, -1.0, 0.0, 1.0);
     testStrBinaryDatums(1.0, 1.0, -1.0, -1.0);
     testStrBinaryDatums(0.0, 1.0, 1.0, 0.0);
     testStrBinaryDatums(1.0, 0.0, 0.0, 1.0);
   }
 
+  @Test
   public void testStrMultiClassDatums() throws Exception {
-    RVFDataset<String, String> trainData = new RVFDataset<String, String>();
-    List<RVFDatum<String, String>> datums = new ArrayList<RVFDatum<String, String>>();
+    RVFDataset<String, String> trainData = new RVFDataset<>();
+    List<RVFDatum<String, String>> datums = new ArrayList<>();
     datums.add(newDatum("alpha",
       new String[]{"f1", "f2"},
       new Double[]{1.0, 0.0}));
@@ -70,7 +73,7 @@ public class LinearClassifierITest extends TestCase {
       new Double[]{5.0, 5.0}));
     for (RVFDatum<String, String> datum : datums)
       trainData.add(datum);
-    LinearClassifierFactory<String, String> lfc = new LinearClassifierFactory<String, String>();
+    LinearClassifierFactory<String, String> lfc = new LinearClassifierFactory<>();
     LinearClassifier<String, String> lc = lfc.trainClassifier(trainData);
 
     RVFDatum td1 = newDatum("alpha",
@@ -84,4 +87,5 @@ public class LinearClassifierITest extends TestCase {
     // Test data
     Assert.assertEquals(td1.label(), lc.classOf(td1));
   }
+
 }

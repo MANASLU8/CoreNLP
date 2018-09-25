@@ -1,5 +1,4 @@
-package edu.stanford.nlp.semgraph.semgrex; 
-import edu.stanford.nlp.util.logging.Redwood;
+package edu.stanford.nlp.semgraph.semgrex;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,15 +12,17 @@ import edu.stanford.nlp.ling.IndexedWord;
 import edu.stanford.nlp.semgraph.SemanticGraph;
 import edu.stanford.nlp.util.Generics;
 import edu.stanford.nlp.util.Pair;
+import edu.stanford.nlp.util.logging.Redwood;
 
 public class NodePattern extends SemgrexPattern  {
 
   /** A logger for this class */
-  private static Redwood.RedwoodChannels log = Redwood.channels(NodePattern.class);
+  private static final Redwood.RedwoodChannels log = Redwood.channels(NodePattern.class);
 
   private static final long serialVersionUID = -5981133879119233896L;
-  private GraphRelation reln;
-  private boolean negDesc;
+
+  private final GraphRelation reln;
+  private final boolean negDesc;
   /**
    *  A hash map from a key to a pair (case_sensitive_pattern, case_insensitive_pattern)
    *  If the type of the entry is a String, then string comparison is safe.
@@ -29,11 +30,11 @@ public class NodePattern extends SemgrexPattern  {
    *  value.
    *  Otherwise, the type will be a Pattern, and you must use Pattern.matches().
    */
-  private Map<String, Pair<Object, Object>> attributes;
-  private boolean isRoot;
+  private final Map<String, Pair<Object, Object>> attributes;
+  private final boolean isRoot;
   private boolean isLink;
   private boolean isEmpty;
-  private String name;
+  private final String name;
   private String descString;
   SemgrexPattern child;
   // specifies the groups in a regex that are captured as
@@ -78,7 +79,7 @@ public class NodePattern extends SemgrexPattern  {
         if (isRegexp) {
           attributes.put(key, Pair.makePair(
               Pattern.compile(patternContent),
-              Pattern.compile(patternContent, Pattern.CASE_INSENSITIVE))
+              Pattern.compile(patternContent, Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE))
           );
         } else {
           attributes.put(key, Pair.makePair(patternContent, patternContent));
@@ -214,7 +215,7 @@ public class NodePattern extends SemgrexPattern  {
     }
     sb.append(' ');
     if (reln != null) {
-      sb.append(reln.toString());
+      sb.append(reln);
       sb.append(' ');
     }
     if (!hasPrecedence && addChild && child != null) {
@@ -559,8 +560,7 @@ public class NodePattern extends SemgrexPattern  {
           goToNextNodeMatch();
         }
       }
-      if (myNode.isNegated()) { // couldn't match my relation/pattern, so
-                                // succeeded!
+      if (myNode.isNegated()) { // couldn't match my relation/pattern, so succeeded!
         return true;
       } else { // couldn't match my relation/pattern, so failed!
         nextMatch = null;

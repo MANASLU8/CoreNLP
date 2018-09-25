@@ -73,9 +73,9 @@ public class QuestionToStatementTranslatorITest {
 
   private void check(String input, String output) {
     List<List<CoreLabel>> results = instance.toStatement(parseSentence(input));
-    assertTrue(input,results.size() > 0);
-    assertEquals(output,
-        StringUtils.join(results.get(0).stream().map(CoreLabel::word), " "));
+    assertTrue("should have gotten a result for the translation for: " + input,results.size() > 0);
+    String got = StringUtils.join(results.get(0).stream().map(CoreLabel::word), " ");
+    assertEquals(output, got);
   }
 
   private void checkFormatted(String input, String output) {
@@ -86,8 +86,36 @@ public class QuestionToStatementTranslatorITest {
   }
 
 
+  /**
+   * Check that no results are returned for this sentence.
+   * This is kind of a cop-out, but better than returning some garbage
+   */
+  @SuppressWarnings("SameParameterValue")
+  private void checkEmpty(String input) {
+    List<List<CoreLabel>> results = instance.toStatement(parseSentence(input));
+    assertEquals(0, results.size());
+  }
+
+
+
   @Test
   public void parseWhatIs() {
+    checkEmpty("what/WP your/PRP$ average/JJ price/NN was/VBD of/IN wedding/NN dress/NN ?");
+    check(
+        "what/WP is/VBZ it/PRP made/VBN of/IN ?",
+        "it is made of thing");
+    check(
+        "what/WP is/VBZ it/PRP trying/VNG to/TO do/VB ?",
+        "it is trying to thing");
+    check(
+        "what/WP is/VBZ it/PRP made/VBN of/IN ?",
+        "it is made of thing");
+    check(
+        "what/WP is/VBZ that/PRP made/VBN of/IN ?",
+        "that is made of thing");
+    check(
+        "what/WP is/VBZ the/DT dress/NN made/VBN of/IN ?",
+        "the dress is made of thing");
     check(
         "what/WP was/VBD the/DT country/NN Tesla/NNP was/VBD born/VBN in/IN ?",
         "the country Tesla was born in was thing");
@@ -273,6 +301,9 @@ public class QuestionToStatementTranslatorITest {
   @Test
   public void parseWhatDoVP() {
     check(
+        "what/WP does/VBZ UNICEF/NNP do/VB ?",
+        "UNICEF does thing");
+    check(
         "what/WP kind/JJ of/IN economy/NN does/VB china/NNP have/VBZ ?",
         "china have kind of economy");
     check(
@@ -327,6 +358,15 @@ public class QuestionToStatementTranslatorITest {
   @Test
   public void parseWhereDoes() {
     check(
+        "where/WRB does/VB money/NN go/VB ?",
+        "money go to location");
+    check(
+        "where/WRB do/VB pandas/NN sleep/VB ?",
+        "pandas sleep at location");
+    check(
+        "where/WRB do/VB pandas/NN go/VB to/TO sleep/VB ?",
+        "pandas go to sleep at location");
+    check(
         "where/WRB does/VB lani/NNP river/NNP begin/VB and/CC end/VB ?",
         "lani river begin and end at location");
     check(
@@ -343,31 +383,37 @@ public class QuestionToStatementTranslatorITest {
   @Test
   public void parseWhereIs() {
     check(
-        "where/WRB is/VBD jack/NNP daniels/NNP factory/NN ?",
+        "where/WRB is/VBD Bank/NNP of/IN America/NNP in/IN Texas/NNP ?/.",
+        "Bank of America in Texas is at location");
+    check(
+        "where/WRB was/VBD Tesla/NNP employed/VBN for/IN a/DT short/JJ time/NN ?/.",
+        "Tesla was employed for a short time at location");
+    check(
+        "where/WRB is/VBZ jack/NNP daniels/NNP factory/NN ?",
         "jack daniels factory is at location");
     check(
-        "where/WRB is/VBD rome/NNP italy/VB located/VBD on/IN a/DT map/NN ?",
+        "where/WRB is/VBZ rome/NNP italy/NNP located/VBN on/IN a/DT map/NN ?",
         "rome italy is at location");
     check(
-        "where/WRB is/VBD jefferson/NNP davis/VB buried/VBD ?",
+        "where/WRB is/VBZ jefferson/NNP davis/NNP buried/VBD ?",
         "jefferson davis is buried at location");
     check(
-        "where/WRB is/VBD american/NNP express/NNP located/JJ ?",
+        "where/WRB is/VBZ american/NNP express/NNP located/JJ ?",
         "american express is located at location");
     check(
-        "where/WRB is/VBD tom/NNP cruise/NNP from/IN ?",
+        "where/WRB is/VBZ tom/NNP cruise/NNP from/IN ?",
         "tom cruise is from location");
     check(
-        "where/WRB is/VBD atlanta/NNP texas/NNP located/VBN ?",
+        "where/WRB is/VBZ atlanta/NNP texas/NNP located/VBN ?",
         "atlanta texas is located at location");
     check(
-        "where/WRB is/VBD belgium/NNP at/IN ?",
+        "where/WRB is/VBZ belgium/NNP at/IN ?",
         "belgium is at location");
     check(
-        "where/WRB is/VBD made/VB kia/NNP car/NN ?",
+        "where/WRB is/VBZ made/VB kia/NNP car/NN ?",
         "kia car is made at location");
     check(
-        "where/WRB is/VBD greyhound/NNP station/NNP in/IN washington/NNP dc/NNP ?",
+        "where/WRB is/VBZ greyhound/NNP station/NNP in/IN washington/NNP dc/NNP ?",
         "greyhound station in washington dc is at location");
   }
 
@@ -556,6 +602,77 @@ public class QuestionToStatementTranslatorITest {
 
 
   @Test
+  public void parseWhatNNIs() {
+    check(
+        "what/WDT kind/NN of/IN cotton/NN is/VB it/PRP made/VBN of/IN ?",
+        "it is made of kind of cotton");
+  }
+
+
+  @Test
+  public void parseHow() {
+    check(
+        "how/WRB do/VBP I/PRP manage/VB my/PRP$ finances/NN ?",
+        "I manage my finances way");
+    check(
+        "how/WRB can/MD I/PRP manage/VB my/PRP$ finances/NN ?",
+        "I can manage my finances way");
+    check(
+        "how/WRB can/MD i/FW manage/VB my/PRP$ finances/NN ?",
+        "i can manage my finances way");
+    check(
+        "how/WRB do/VBP these/DT questions/NNS make/VBP you/PRP feel/VP ?",
+        "these questions make you feel way");
+    check(
+        "how/WRB do/VBP I/DT ship/VB my/PRP$ package/NN ?",
+        "I ship my package way");
+    check(
+        "how/WRB big/JJ is/VBZ Texas/NNP ?",
+        "Texas is adjective");
+    check(
+        "how/WRB is/VBZ the/DT weather/NN ?",
+        "the weather is adjective");
+  }
+
+
+  @Test
+  public void parseHowMuch() {
+    check(
+        "how/WRB much/RB do/VBP I/PRP need/VB to/TO open/VB an/DT account/NN ?",
+        "I need thing to open an account");
+    check(
+        "how/WRB much/RB money/NN do/VBP I/PRP need/VB to/TO open/VB an/DT account/NN ?",
+        "I need thing to open an account");
+    check(
+        "how/WRB much/RB does/VBZ it/PRP cost/VB to/TO apply/VB ?",
+        "it cost thing to apply");
+    check(
+        "how/WRB much/RB do/VBP cats/NNS enjoy/VB playing/VBG with/IN mice/NNS ?",
+        "cats enjoy playing with mice way");
+  }
+
+
+  @Test
+  public void parseHowCan() {
+    check(
+        "How/WRB can/MD I/PRP access/VB my/PRP$ money/NN ?",
+        "I can access my money way");
+    check(
+        "what/WP are/VBP ways/NNS I/PRP can/MD access/VB my/PRP$ money/NN ?",
+        "I can access my money way");
+    check(
+        "what/WP are/VBP ways/NNS i/FW can/MD access/VB my/PRP$ money/NN ?",
+        "i can access my money way");
+    check(
+        "How/WRB can/MD cats/NNS fly/VB ?",
+        "cats fly way");
+    check(
+        "How/WRB do/VBP cats/NNS fly/VB ?",
+        "cats fly way");
+  }
+
+
+  @Test
   public void formattingStartUpperCase() {
     checkFormatted(
         "what/WRB did/VBD john/NNP doe/NNP invent/VB ?",
@@ -568,6 +685,9 @@ public class QuestionToStatementTranslatorITest {
 
   @Test
   public void formattingCorrectTense() {
+    checkFormatted(
+        "when/WRB did/VBD there/EX begin/VB to/TO be/VB a/DT renewal/NN of/IN popular/JJ interest/NN in/IN Tesla/NNP ?",
+        "There began to be a renewal of popular interest in Tesla in time");
     checkFormatted(
         "what/WP did/VBD Tesla/NNP invent/VB ?",
         "Tesla invented thing");
@@ -598,5 +718,23 @@ public class QuestionToStatementTranslatorITest {
     checkFormatted(
         "when/WRB did/VBD tesla/NNP license/VB his/PRP patents/NN ?",
         "Tesla licensed his patents in time");
+    checkFormatted(
+        "where/WRB did/VBD tesla/NNP work/VB before/IN striking/VBG out/RP on/IN his/PRP$ own/JJ ?",
+        "Tesla worked before striking out on his own at Location");
+    checkFormatted(
+        "where/WRB did/VBD tesla/NNP work/NN before/IN striking/VBG out/RP on/IN his/PRP$ own/JJ ?",  // POS error on work/NN
+        "Tesla worked before striking out on his own at Location");
+  }
+
+
+  @Test
+  public void whatNNWillI() {
+    checkFormatted(
+        "what/WRB language/NN will/MD I/PRP be/VB able/JJ to/TO speak/VB if/IN I/PRP purchase/VBP these/DT socks/NNS ?/.",
+        "You will be able to speak language if you purchase these socks");
+    checkFormatted(
+        "what/WRB topic/NN would/MD you/PRP like/VB to/TO talk/VB about/IN on/IN Thursday/NNP ?/.",
+        "I would like to talk about topic on Thursday");
+
   }
 }

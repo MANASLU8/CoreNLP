@@ -22,6 +22,7 @@ import edu.stanford.nlp.trees.TreePrint;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.Pointer;
+import edu.stanford.nlp.util.StringUtils;
 
 import java.io.*;
 import java.text.DecimalFormat;
@@ -43,17 +44,6 @@ import java.util.stream.Stream;
 public class JSONOutputter extends AnnotationOutputter {
 
   protected static final String INDENT_CHAR = "  ";
-
-  public static String cleanJSON(String s) {
-    return s
-        .replace("\\", "\\\\")
-        .replace("\b", "\\b")
-        .replace("\f", "\\f")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-        .replace("\"", "\\\"");
-  }
 
 
   /** {@inheritDoc} */
@@ -86,8 +76,8 @@ public class JSONOutputter extends AnnotationOutputter {
           l2.set("line", sentence.get(CoreAnnotations.LineNumberAnnotation.class));
           // (constituency tree)
           StringWriter treeStrWriter = new StringWriter();
-          TreePrint treePrinter = options.constituentTreePrinter;
-          if (treePrinter == AnnotationOutputter.DEFAULT_CONSTITUENT_TREE_PRINTER) {
+          TreePrint treePrinter = options.constituencyTreePrinter;
+          if (treePrinter == AnnotationOutputter.DEFAULT_CONSTITUENCY_TREE_PRINTER) {
             // note the '==' -- we're overwriting the default, but only if it was not explicitly set otherwise
             treePrinter = new TreePrint("oneline");
           }
@@ -104,9 +94,20 @@ public class JSONOutputter extends AnnotationOutputter {
           Tree sentimentTree = sentence.get(SentimentCoreAnnotations.SentimentAnnotatedTree.class);
           if (sentimentTree != null) {
             int sentiment = RNNCoreAnnotations.getPredictedClass(sentimentTree);
+            List<Double> sentimentPredictions =
+                RNNCoreAnnotations.getPredictionsAsStringList(sentimentTree);
             String sentimentClass = sentence.get(SentimentCoreAnnotations.SentimentClass.class);
             l2.set("sentimentValue", Integer.toString(sentiment));
             l2.set("sentiment", sentimentClass.replaceAll(" ", ""));
+            l2.set("sentimentDistribution", sentimentPredictions);
+            StringWriter sentimentTreeStringWriter = new StringWriter();
+            sentimentTree.pennPrint(new PrintWriter(sentimentTreeStringWriter),
+                label -> (label.value() == null) ? "" :
+                    (RNNCoreAnnotations.getPredictedClass(label) != -1) ?
+                        (label.value() + "|sentiment=" + RNNCoreAnnotations.getPredictedClass(label) + "|prob=" +
+                            (String.format("%.3f", RNNCoreAnnotations.getPredictedClassProb(label)))) : label.value());
+            String treeString = sentimentTreeStringWriter.toString();
+            l2.set("sentimentTree", treeString.trim());
           }
           // (openie)
           Collection<RelationTriple> openIETriples = sentence.get(NaturalLogicAnnotations.RelationTriplesAnnotation.class);
@@ -213,14 +214,23 @@ public class JSONOutputter extends AnnotationOutputter {
       if (doc.get(CoreAnnotations.QuotationsAnnotation.class) != null) {
         List<CoreMap> quotes = QuoteAnnotator.gatherQuotes(doc);
         l1.set("quotes", quotes.stream().map(quote -> (Consumer<Writer>) (Writer l2) -> {
-            l2.set("id", quote.get(CoreAnnotations.QuotationIndexAnnotation.class));
-            l2.set("text", quote.get(CoreAnnotations.TextAnnotation.class));
-            l2.set("beginIndex", quote.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class));
-            l2.set("endIndex", quote.get(CoreAnnotations.CharacterOffsetEndAnnotation.class));
-            l2.set("beginToken", quote.get(CoreAnnotations.TokenBeginAnnotation.class));
-            l2.set("endToken", quote.get(CoreAnnotations.TokenEndAnnotation.class));
-            l2.set("beginSentence", quote.get(CoreAnnotations.SentenceBeginAnnotation.class));
-            l2.set("endSentence", quote.get(CoreAnnotations.SentenceEndAnnotation.class));
+          l2.set("id", quote.get(CoreAnnotations.QuotationIndexAnnotation.class));
+          l2.set("text", quote.get(CoreAnnotations.TextAnnotation.class));
+          l2.set("beginIndex", quote.get(CoreAnnotations.CharacterOffsetBeginAnnotation.class));
+          l2.set("endIndex", quote.get(CoreAnnotations.CharacterOffsetEndAnnotation.class));
+          l2.set("beginToken", quote.get(CoreAnnotations.TokenBeginAnnotation.class));
+          l2.set("endToken", quote.get(CoreAnnotations.TokenEndAnnotation.class));
+          l2.set("beginSentence", quote.get(CoreAnnotations.SentenceBeginAnnotation.class));
+          l2.set("endSentence", quote.get(CoreAnnotations.SentenceEndAnnotation.class));
+          l2.set("speaker",
+              quote.get(QuoteAttributionAnnotator.SpeakerAnnotation.class) != null ?
+                  quote.get(QuoteAttributionAnnotator.SpeakerAnnotation.class) :
+                  "Unknown");
+          l2.set("canonicalSpeaker",
+              quote.get(QuoteAttributionAnnotator.CanonicalMentionAnnotation.class) != null ?
+                  quote.get(QuoteAttributionAnnotator.CanonicalMentionAnnotation.class) :
+                  "Unknown");
+
         }));
       }
 
@@ -250,6 +260,7 @@ public class JSONOutputter extends AnnotationOutputter {
       }
     });
 
+    l0.newline();
     l0.flush();  // flush
   }
 
@@ -351,7 +362,7 @@ public class JSONOutputter extends AnnotationOutputter {
       if (value instanceof String) {
         // Case: simple string (this is easy!)
         writer.write("\"");
-        writer.write(cleanJSON(value.toString()));
+        writer.write(StringUtils.escapeJsonString(value.toString()));
         writer.write("\"");
       } else if (value instanceof Collection) {
         // Case: collection
@@ -370,7 +381,7 @@ public class JSONOutputter extends AnnotationOutputter {
       } else if (value instanceof Enum) {
         // Case: enumeration constant
         writer.write("\"");
-        writer.write(cleanJSON(((Enum) value).name()));
+        writer.write(StringUtils.escapeJsonString(((Enum) value).name()));
         writer.write("\"");
       } else if (value instanceof Pair) {
         routeObject(indent, Arrays.asList(((Pair) value).first, ((Pair) value).second));
@@ -496,7 +507,7 @@ public class JSONOutputter extends AnnotationOutputter {
           newline();
           indent(indent + 1);
           writer.write("\"");
-          writer.write(cleanJSON(key));
+          writer.write(StringUtils.escapeJsonString(key));
           writer.write("\":"); space();
           // Write the value
           routeObject(indent + 1, value);

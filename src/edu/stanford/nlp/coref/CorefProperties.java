@@ -3,6 +3,9 @@ package edu.stanford.nlp.coref;
 import java.util.Locale;
 import java.util.Properties;
 
+import edu.stanford.nlp.trees.HeadFinder;
+import edu.stanford.nlp.trees.SemanticHeadFinder;
+import edu.stanford.nlp.trees.international.pennchinese.ChineseSemanticHeadFinder;
 import edu.stanford.nlp.util.PropertiesUtils;
 
 /**
@@ -109,9 +112,10 @@ public class CorefProperties {
 
   public static final String OUTPUT_PATH_PROP = "coref.conllOutputPath";
   public static String conllOutputPath(Properties props) {
-    String returnPath = props.getProperty("coref.conllOutputPath", "/scr/nlp/coref/logs/");
-    if (!returnPath.substring(returnPath.length()-1).equals("/"))
+    String returnPath = props.getProperty("coref.conllOutputPath", "/u/scr/nlp/coref/logs/");
+    if ( ! returnPath.endsWith("/")) {
       returnPath += "/";
+    }
     return returnPath;
   }
 
@@ -122,10 +126,11 @@ public class CorefProperties {
       (d == Dataset.DEV ? getDevDataPath(props) : getTestDataPath(props)));
   }
 
-  public static String getDataPath(Properties props) {
-    String returnPath = props.getProperty("coref.data", "/scr/nlp/data/conll-2012/");
-    if (!returnPath.substring(returnPath.length()-1).equals("/"))
+  private static String getDataPath(Properties props) {
+    String returnPath = props.getProperty("coref.data", "/u/scr/nlp/data/conll-2012/");
+    if ( ! returnPath.endsWith("/")) {
       returnPath += "/";
+    }
     return returnPath;
   }
 
@@ -150,7 +155,7 @@ public class CorefProperties {
   }
 
   public static String getScorerPath(Properties props) {
-    return props.getProperty("coref.scorer", "/scr/nlp/data/conll-2012/scorer/v8.01/scorer.pl");
+    return props.getProperty("coref.scorer", "/u/scr/nlp/data/conll-2012/scorer/v8.01/scorer.pl");
   }
 
   public static Locale getLanguage(Properties props) {
@@ -167,4 +172,15 @@ public class CorefProperties {
   private static String getLanguageStr(Properties props) {
     return getLanguage(props).getDisplayName().toLowerCase();
   }
+
+
+  public static HeadFinder getHeadFinder(Properties props) {
+    Locale lang = getLanguage(props);
+    if (lang == Locale.ENGLISH) return new SemanticHeadFinder();
+    else if (lang == Locale.CHINESE) return new ChineseSemanticHeadFinder();
+    else {
+      throw new RuntimeException("Invalid language setting: cannot load HeadFinder");
+    }
+  }
+
 }
