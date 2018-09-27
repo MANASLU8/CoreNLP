@@ -6,6 +6,11 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreebankLanguagePack;
 import edu.stanford.nlp.util.Generics;
 
+/**
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 public class RussianMorphoFeaturesHeadFinder extends AbstractCollinsHeadFinder {
 
   private static final long serialVersionUID = 3837231832443310386L;
@@ -16,13 +21,6 @@ public class RussianMorphoFeaturesHeadFinder extends AbstractCollinsHeadFinder {
 
   public RussianMorphoFeaturesHeadFinder(TreebankLanguagePack tlp) {
     super(tlp);
-
-    // Russian POS (UD POS-tags):
-    // ADJ: adjective, ADP: adposition, ADV: adverb, AUX: auxiliary
-    // CCONJ: coordinating conjunction, DET: determiner, INTJ: interjection
-    // NOUN: noun, NUM: numeral, PART: particle, PRON: pronoun, PROPN: proper noun, PUNCT:
-    // punctuation
-    // SCONJ: subordinating conjunction, SYM: symbol, VERB: verb, X: other
 
     nonTerminalInfo = Generics.newHashMap();
 

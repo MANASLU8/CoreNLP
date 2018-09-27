@@ -6,6 +6,11 @@ import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreebankLanguagePack;
 import edu.stanford.nlp.util.Generics;
 
+/**
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 public class RussianHeadFinder extends AbstractCollinsHeadFinder {
 
   private static final long serialVersionUID = 3837231832443310386L;

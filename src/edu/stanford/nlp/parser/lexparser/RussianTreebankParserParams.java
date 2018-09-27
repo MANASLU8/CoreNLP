@@ -16,6 +16,11 @@ import edu.stanford.nlp.trees.international.russian.RussianTreebankLanguagePack;
 
 import java.util.List;
 
+/**
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 public class RussianTreebankParserParams extends AbstractTreebankParserParams {
 
   private static final long serialVersionUID = 3638801831677887266L;

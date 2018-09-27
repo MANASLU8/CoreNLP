@@ -23,17 +23,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
+/**
+ * Launcher for test pipeline.
+ *
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 public class Launcher {
 
   private final static String DEFAULT_PATH_RESULTS = "results.conll";
   private final static String DEFAULT_PATH_PARSER_MODEL =
-      "src//edu//stanford//nlp//models//russian//nndep.rus.modelWithTestWithoutAlpha.txt.gz";
+      "edu//stanford//nlp//models//parser//nndep/nndep.rus.model.wiki.txt.gz";
   private final static String DEFAULT_PATH_TAGGER =
-      "src//edu//stanford//nlp//models//russian//russian-ud-pos.tagger";
+      "edu//stanford//nlp//models//russian//russian-ud-pos.tagger";
   private final static String DEFAULT_PATH_MF_TAGGER =
-      "src//edu//stanford//nlp//models//russian//russian-ud-mf.tagger";
+      "edu//stanford//nlp//models//russian//russian-ud-mf.tagger";
   private final static String DEFAULT_PATH_TEXT =
-      "src//edu//stanford//nlp//models//russian//text.txt";
+      "edu//stanford//nlp//models//russian//text.txt";
 
   public static void main(String[] args) throws FileNotFoundException, IOException {
     String tagger = DEFAULT_PATH_TAGGER;
@@ -102,7 +109,6 @@ public class Launcher {
       for (String line : text) {
         Annotation annotation = pipeline.process(line);
         CoNLLUOutputter.conllUPrint(annotation, fos);
-        // pipeline.conllPrint(annotation, w);
       }
     }
     fos.flush();

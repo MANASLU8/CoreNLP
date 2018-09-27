@@ -1,6 +1,12 @@
 package edu.stanford.nlp.trees.international.russian;
 
-// import edu.stanford.nlp.international.russian.RussianMorphoFeatureSpecification;
+/**
+ * Language pack for the Russian treebank.
+ *
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 import edu.stanford.nlp.international.morph.MorphoFeatureSpecification;
 import edu.stanford.nlp.trees.AbstractTreebankLanguagePack;
 import edu.stanford.nlp.trees.HeadFinder;
@@ -21,10 +27,7 @@ public class RussianTreebankLanguagePack extends AbstractTreebankLanguagePack {
 
   private static final String[] russianStartSymbols = {"ROOT"};
 
-  private static final char[] annotationIntroducingChars = {'-', '|', '#', '_'}; // убрала "=",
-                                                                                 // добавила "-"
-
-  // public static final String RU_ENCODING = "UTF-8";
+  private static final char[] annotationIntroducingChars = {'-', '|', '#', '_'}; 
 
   @Override
   public String[] sentenceFinalPunctuationWords() {

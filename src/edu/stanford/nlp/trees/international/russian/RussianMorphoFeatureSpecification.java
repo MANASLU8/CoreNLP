@@ -1,6 +1,10 @@
 package edu.stanford.nlp.trees.international.russian;
 
-import edu.stanford.nlp.international.arabic.ArabicMorphoFeatureSpecification.ArabicMorphoFeatures;
+/**
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 import edu.stanford.nlp.international.morph.MorphoFeatureSpecification;
 import edu.stanford.nlp.international.morph.MorphoFeatures;
 
@@ -61,7 +65,7 @@ public class RussianMorphoFeatureSpecification extends MorphoFeatureSpecificatio
 
   @Override
   public MorphoFeatures strToFeatures(String spec) {
-    MorphoFeatures features = new ArabicMorphoFeatures();
+    MorphoFeatures features = new MorphoFeatures();
 
     // Check for the boundary symbol
     if (spec == null || spec.equals("")) {

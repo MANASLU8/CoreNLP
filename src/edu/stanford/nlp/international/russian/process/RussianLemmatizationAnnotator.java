@@ -6,6 +6,7 @@ import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
+import edu.stanford.nlp.pipeline.Annotator;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.ArraySet;
 import edu.stanford.nlp.util.CoreMap;
@@ -26,19 +27,20 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+/**
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.Annotator {
 
 	private static Redwood.RedwoodChannels log = Redwood.channels(RussianLemmatizationAnnotator.class);
+	
+	public static final String DEFAULT_DICTIONARY_PATH = "edu//stanford//nlp//international//russian//process//dict.tsv";
 
 	// fix
 	private static Map<String, List<Pair<String, String>>> dict = new HashMap<String, List<Pair<String, String>>>();
 	private final int nThreads;
-
-	/*
-	 * static { init(); }
-	 * 
-	 * private static void init() { // fix || singletone? loadDictionary(); }
-	 */
 
 	private static void loadDictionary(String path) {
 		try {
@@ -64,19 +66,26 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
 		}
 	}
 
+	public RussianLemmatizationAnnotator() {
+		this(null);
+	}
+	
 	public RussianLemmatizationAnnotator(String dictionaryPath) {
 		this(dictionaryPath, 1);
 	}
 
-	public RussianLemmatizationAnnotator() {
-		this("src//edu//stanford//nlp//international//russian//process//dict.tsv" ,1);
-	}
-
 	public RussianLemmatizationAnnotator(String dictionaryPath, int numThreads) {
 		if (dict.isEmpty()) {
+			if(dictionaryPath == null) {
+				dictionaryPath = DEFAULT_DICTIONARY_PATH;
+			}
 			loadDictionary(dictionaryPath);
 		}
 		this.nThreads = numThreads;
+	}
+	
+	public RussianLemmatizationAnnotator(String name, Properties props) {
+		this(props.getProperty("custom.lemma.dictionaryPath"));
 	}
 
 	@Override
@@ -163,7 +172,13 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
 		Properties props = new Properties();
 		props.setProperty("annotators", "tokenize, ssplit");
 		StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-		pipeline.addAnnotator(new RussianLemmatizationAnnotator());
+		Annotator ruAnnotator;
+		if(args.length > 0) {
+			ruAnnotator = new RussianLemmatizationAnnotator(args[0]);
+		} else {
+			ruAnnotator = new RussianLemmatizationAnnotator();
+		}
+		pipeline.addAnnotator(ruAnnotator);
 
 		Annotation annotation1 = pipeline.process("домами");
 		Annotation annotation2 = pipeline.process("книги");

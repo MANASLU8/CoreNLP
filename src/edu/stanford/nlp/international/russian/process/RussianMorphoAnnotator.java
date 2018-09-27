@@ -17,7 +17,6 @@ import edu.stanford.nlp.util.Timing;
 import edu.stanford.nlp.util.concurrent.MulticoreWrapper;
 import edu.stanford.nlp.util.concurrent.ThreadsafeProcessor;
 import edu.stanford.nlp.util.logging.Redwood;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,11 +28,15 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * @author Ivan Shilin
+ * @author Liubov Kovriguina
+ */
+
 public class RussianMorphoAnnotator implements Annotator {
 
   public static final String DEFAULT_POS_MODEL =
-      "src//edu//stanford//nlp//models//pos-tagger//russian//russian-ud-mf.tagger";
-
+      "edu//stanford//nlp//models//pos-tagger//russian-ud-mf.tagger";
 
   private static Redwood.RedwoodChannels log = Redwood.channels(RussianMorphoAnnotator.class);
 
@@ -42,8 +45,6 @@ public class RussianMorphoAnnotator implements Annotator {
   private final int maxSentenceLength;
 
   private final int nThreads;
-
-  private final boolean reuseTags;
 
   private final Pattern pattern = Pattern.compile("[0-9]+");
 
@@ -258,10 +259,6 @@ public class RussianMorphoAnnotator implements Annotator {
     });
   }
 
-  /**
-   * Create a tagger annotator using the default Russian tagger from the models (and non-verbose
-   * initialization).
-   */
   public RussianMorphoAnnotator() {
     this(false);
   }
@@ -275,12 +272,12 @@ public class RussianMorphoAnnotator implements Annotator {
   }
 
   /**
-   * Create a POS tagger annotator.
+   * Create a RussianMorphoAnnotator annotator.
    *
-   * @param posLoc Location of POS tagger model (may be file path, classpath resource, or URL
+   * @param posLoc Location of POS mf tagger model (may be file path, classpath resource, or URL
    * @param verbose Whether to show verbose information on model loading
    * @param maxSentenceLength Sentences longer than this length will be skipped in processing
-   * @param numThreads The number of threads for the POS tagger annotator to use
+   * @param numThreads The number of threads
    */
   public RussianMorphoAnnotator(String posLoc, boolean verbose, int maxSentenceLength,
       int numThreads) {
@@ -295,7 +292,6 @@ public class RussianMorphoAnnotator implements Annotator {
     this.pos = model;
     this.maxSentenceLength = maxSentenceLength;
     this.nThreads = numThreads;
-    this.reuseTags = false;
   }
 
   public RussianMorphoAnnotator(String annotatorName, Properties props) {
@@ -309,7 +305,6 @@ public class RussianMorphoAnnotator implements Annotator {
         PropertiesUtils.getInt(props, annotatorName + ".maxlen", Integer.MAX_VALUE);
     this.nThreads = PropertiesUtils.getInt(props, annotatorName + ".nthreads",
         PropertiesUtils.getInt(props, "nthreads", 1));
-    this.reuseTags = PropertiesUtils.getBool(props, annotatorName + ".reuseTags", false);
   }
 
   private static MaxentTagger loadModel(String loc, boolean verbose) {
@@ -370,9 +365,6 @@ public class RussianMorphoAnnotator implements Annotator {
     if (tokens.size() <= maxSentenceLength) {
       try {
         for (CoreLabel token : tokens) {
-          // tagged = pos.tagSentence(tokens, this.reuseTags);
-          // pos.tagString(toTag);
-          // pos.tagString(token.originalText());
           tagged = pos.apply(new ArrayList<CoreLabel>() {
             {
               add(token);
@@ -384,21 +376,14 @@ public class RussianMorphoAnnotator implements Annotator {
           } else {
             setAnnotations(token, "X");
           }
-          // setAnnotations(token, );
         }
       } catch (OutOfMemoryError e) {
-        log.error(e); // Beware that we can now get an OOM in logging, too.
+        log.error(e);
         log.warn("Tagging of sentence ran out of memory. " + "Will ignore and continue: "
             + SentenceUtils.listToString(tokens));
       }
     }
 
-
-    /*
-     * if (tagged != null) { for (int i = 0, sz = tokens.size(); i < sz; i++) {
-     * setAnnotations(tokens.get(i), tagged.get(i).tag()); } } else { for (CoreLabel token : tokens)
-     * { setAnnotations(token, "X"); } }
-     */
     return sentence;
   }
 
@@ -411,8 +396,6 @@ public class RussianMorphoAnnotator implements Annotator {
       HashMap<String, String> featsMap = mappingFeats(resPos, feats);
       token.set(CoreAnnotations.CoNLLUFeats.class, featsMap);
     }
-    token.set(CoreAnnotations.PartOfSpeechAnnotation.class, resPos);
-    token.set(CoreAnnotations.CoarseTagAnnotation.class, resPos);
   }
 
   HashMap<String, String> mappingFeats(String resPos, String feats) {
@@ -449,20 +432,21 @@ public class RussianMorphoAnnotator implements Annotator {
     Properties props = new Properties();
     props.setProperty("annotators", "tokenize, ssplit");
     StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-    pipeline.addAnnotator(new RussianMorphoAnnotator());
-    // new MaxentTagger("C://Users//Ivan//Desktop//russian-ud-mf.tagger")));
+    Annotator russianMorphoAnnotator;
+    if (args.length > 0) {
+      russianMorphoAnnotator = new RussianMorphoAnnotator(args[0], false);
+    } else {
+      russianMorphoAnnotator = new RussianMorphoAnnotator();
+    }
+    pipeline.addAnnotator(russianMorphoAnnotator);
 
     Annotation annotation = pipeline.process("бежал домами");
 
     CoreLabel cl1 = annotation.get(TokensAnnotation.class).get(0);
     CoreLabel cl2 = annotation.get(TokensAnnotation.class).get(1);
 
-    System.out.println(cl1.get(CoreAnnotations.PartOfSpeechAnnotation.class) + " "
-        + cl1.get(CoreAnnotations.CoarseTagAnnotation.class) + " "
-        + cl1.get(CoreAnnotations.CoNLLUFeats.class));
-    System.out.println(cl2.get(CoreAnnotations.PartOfSpeechAnnotation.class) + " "
-        + cl2.get(CoreAnnotations.CoarseTagAnnotation.class) + " "
-        + cl2.get(CoreAnnotations.CoNLLUFeats.class));
+    System.out.println(cl1.get(CoreAnnotations.CoNLLUFeats.class));
+    System.out.println(cl2.get(CoreAnnotations.CoNLLUFeats.class));
   }
 
 }
