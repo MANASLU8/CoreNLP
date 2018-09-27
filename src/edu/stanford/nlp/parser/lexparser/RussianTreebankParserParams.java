@@ -5,7 +5,6 @@ import edu.stanford.nlp.ling.SentenceUtils;
 import edu.stanford.nlp.trees.DiskTreebank;
 import edu.stanford.nlp.trees.HeadFinder;
 import edu.stanford.nlp.trees.MemoryTreebank;
-import edu.stanford.nlp.trees.ModCollinsHeadFinder;
 import edu.stanford.nlp.trees.PennTreeReader;
 import edu.stanford.nlp.trees.Tree;
 import edu.stanford.nlp.trees.TreeReaderFactory;
@@ -13,7 +12,6 @@ import edu.stanford.nlp.trees.TreeTransformer;
 import edu.stanford.nlp.trees.TreebankLanguagePack;
 import edu.stanford.nlp.trees.international.russian.RussianHeadFinder;
 import edu.stanford.nlp.trees.international.russian.RussianTreebankLanguagePack;
-
 import java.util.List;
 
 /**

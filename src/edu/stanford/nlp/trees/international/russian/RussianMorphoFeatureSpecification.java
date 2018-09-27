@@ -7,7 +7,6 @@ package edu.stanford.nlp.trees.international.russian;
 
 import edu.stanford.nlp.international.morph.MorphoFeatureSpecification;
 import edu.stanford.nlp.international.morph.MorphoFeatures;
-
 import java.util.Arrays;
 import java.util.List;
 

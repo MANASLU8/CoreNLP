@@ -13,12 +13,13 @@ import edu.stanford.nlp.process.CoreLabelTokenFactory;
 import edu.stanford.nlp.tagger.maxent.MaxentTagger;
 import edu.stanford.nlp.util.CoreMap;
 import edu.stanford.nlp.util.StringUtils;
-
 import java.io.BufferedReader;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -32,15 +33,14 @@ import java.util.Properties;
 
 public class Launcher {
 
-  private final static String DEFAULT_PATH_RESULTS = "results.conll";
+  private final static String DEFAULT_PATH_RESULTS = "ru_example.conllu";
   private final static String DEFAULT_PATH_PARSER_MODEL =
-      "edu//stanford//nlp//models//parser//nndep/nndep.rus.model.wiki.txt.gz";
+      "edu//stanford//nlp//models//parser//nndep//nndep.rus.model.wiki.txt.gz";
   private final static String DEFAULT_PATH_TAGGER =
-      "edu//stanford//nlp//models//russian//russian-ud-pos.tagger";
+      "edu//stanford//nlp//models//pos-tagger//russian-ud-pos.tagger";
   private final static String DEFAULT_PATH_MF_TAGGER =
-      "edu//stanford//nlp//models//russian//russian-ud-mf.tagger";
-  private final static String DEFAULT_PATH_TEXT =
-      "edu//stanford//nlp//models//russian//text.txt";
+      "edu//stanford//nlp//models//pos-tagger//russian-ud-mf.tagger";
+  private final static String DEFAULT_PATH_TEXT = "ru_example.txt";
 
   public static void main(String[] args) throws FileNotFoundException, IOException {
     String tagger = DEFAULT_PATH_TAGGER;
@@ -69,12 +69,13 @@ public class Launcher {
     }
     if (pr.containsKey("pConll")) {
       pConll = pr.getProperty("pConll");
-    } if (pr.containsKey("pLemmaDict")) {
+    }
+    if (pr.containsKey("pLemmaDict")) {
       pLemmaDict = pr.getProperty("pLemmaDict");
-    } 
+    }
     if (pr.containsKey("mf")) {
       mf = true;
-    } 
+    }
 
     Properties props = new Properties();
     props.setProperty("annotators", "tokenize, ssplit");
@@ -82,21 +83,21 @@ public class Launcher {
 
     if (mf) {
       pipeline.addAnnotator(new RussianMorphoAnnotator(new MaxentTagger(taggerMF)));
-    } else {
-      pipeline.addAnnotator(new POSTaggerAnnotator(new MaxentTagger(tagger)));
     }
+    pipeline.addAnnotator(new POSTaggerAnnotator(new MaxentTagger(tagger)));
+
 
     Properties propsParser = new Properties();
     propsParser.setProperty("model", parser);
     propsParser.setProperty("tagger.model", tagger);
     pipeline.addAnnotator(new DependencyParseAnnotator(propsParser));
 
-    if(pLemmaDict == null) {
-    	pipeline.addAnnotator(new RussianLemmatizationAnnotator());
+    if (pLemmaDict == null) {
+      pipeline.addAnnotator(new RussianLemmatizationAnnotator());
     } else {
-    	pipeline.addAnnotator(new RussianLemmatizationAnnotator(pLemmaDict));
+      pipeline.addAnnotator(new RussianLemmatizationAnnotator(pLemmaDict));
     }
-    
+
     FileOutputStream fos = new FileOutputStream(pResults, false);
     if (pConll != null) {
       List<CoreMap> sents = new ArrayList<>();
@@ -107,8 +108,10 @@ public class Launcher {
     } else {
       List<String> text = getText(pText);
       for (String line : text) {
-        Annotation annotation = pipeline.process(line);
-        CoNLLUOutputter.conllUPrint(annotation, fos);
+        if (!line.isEmpty()) {
+          Annotation annotation = pipeline.process(line);
+          CoNLLUOutputter.conllUPrint(annotation, fos);
+        }
       }
     }
     fos.flush();
@@ -118,7 +121,7 @@ public class Launcher {
     List<String> res = new ArrayList<String>();
     BufferedReader br = null;
     try {
-      br = new BufferedReader(new FileReader(file));
+      br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"));
       String line;
       while ((line = br.readLine()) != null) {
         res.add(line);
@@ -131,25 +134,6 @@ public class Launcher {
       }
     }
     return res;
-  }
-
-  private static String getTextStr(String file) throws IOException {
-    List<String> res = new ArrayList<String>();
-    BufferedReader br = null;
-    try {
-      br = new BufferedReader(new FileReader(file));
-      String line;
-      while ((line = br.readLine()) != null) {
-        res.add(line);
-      }
-    } catch (FileNotFoundException e) {
-      e.printStackTrace();
-    } finally {
-      if (br != null) {
-        br.close();
-      }
-    }
-    return res.get(0);
   }
 
   public static void loadConllFile(String inFile, List<CoreMap> sents) {

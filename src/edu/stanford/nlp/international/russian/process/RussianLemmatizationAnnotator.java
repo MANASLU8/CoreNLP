@@ -14,7 +14,6 @@ import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.concurrent.MulticoreWrapper;
 import edu.stanford.nlp.util.concurrent.ThreadsafeProcessor;
 import edu.stanford.nlp.util.logging.Redwood;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -34,157 +33,159 @@ import java.util.Set;
 
 public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.Annotator {
 
-	private static Redwood.RedwoodChannels log = Redwood.channels(RussianLemmatizationAnnotator.class);
-	
-	public static final String DEFAULT_DICTIONARY_PATH = "edu//stanford//nlp//international//russian//process//dict.tsv";
+  private static Redwood.RedwoodChannels log =
+      Redwood.channels(RussianLemmatizationAnnotator.class);
 
-	// fix
-	private static Map<String, List<Pair<String, String>>> dict = new HashMap<String, List<Pair<String, String>>>();
-	private final int nThreads;
+  public static final String DEFAULT_DICTIONARY_PATH =
+      "edu//stanford//nlp//international//russian//process//dict.tsv";
 
-	private static void loadDictionary(String path) {
-		try {
-			BufferedReader br = new BufferedReader(new InputStreamReader(
-					new FileInputStream(path),
-					"UTF-8"));
-			for (String line; (line = br.readLine()) != null;) {
-				String[] ln = line.split("\t");
-				Pair<String, String> lemmaTag = new Pair<String, String>(ln[1], ln[2]);
-				if (dict.containsKey(ln[0])) {
-					List<Pair<String, String>> dlist = dict.get(ln[0]);
-					if (!dlist.contains(lemmaTag)) {
-						dlist.add(lemmaTag);
-					}
-				} else {
-					List<Pair<String, String>> lst = new ArrayList<Pair<String, String>>();
-					lst.add(lemmaTag);
-					dict.put(ln[0], lst);
-				}
-			}
-		} catch (IOException e) {
-			log.error(e.getMessage(), e);
-		}
-	}
+  // fix
+  private static Map<String, List<Pair<String, String>>> dict =
+      new HashMap<String, List<Pair<String, String>>>();
+  private final int nThreads;
 
-	public RussianLemmatizationAnnotator() {
-		this(null);
-	}
-	
-	public RussianLemmatizationAnnotator(String dictionaryPath) {
-		this(dictionaryPath, 1);
-	}
+  private static void loadDictionary(String path) {
+    try {
+      BufferedReader br =
+          new BufferedReader(new InputStreamReader(new FileInputStream(path), "UTF-8"));
+      for (String line; (line = br.readLine()) != null;) {
+        String[] ln = line.split("\t");
+        Pair<String, String> lemmaTag = new Pair<String, String>(ln[1], ln[2]);
+        if (dict.containsKey(ln[0])) {
+          List<Pair<String, String>> dlist = dict.get(ln[0]);
+          if (!dlist.contains(lemmaTag)) {
+            dlist.add(lemmaTag);
+          }
+        } else {
+          List<Pair<String, String>> lst = new ArrayList<Pair<String, String>>();
+          lst.add(lemmaTag);
+          dict.put(ln[0], lst);
+        }
+      }
+    } catch (IOException e) {
+      log.error(e.getMessage(), e);
+    }
+  }
 
-	public RussianLemmatizationAnnotator(String dictionaryPath, int numThreads) {
-		if (dict.isEmpty()) {
-			if(dictionaryPath == null) {
-				dictionaryPath = DEFAULT_DICTIONARY_PATH;
-			}
-			loadDictionary(dictionaryPath);
-		}
-		this.nThreads = numThreads;
-	}
-	
-	public RussianLemmatizationAnnotator(String name, Properties props) {
-		this(props.getProperty("custom.lemma.dictionaryPath"));
-	}
+  public RussianLemmatizationAnnotator() {
+    this(null);
+  }
 
-	@Override
-	public void annotate(Annotation annotation) {
+  public RussianLemmatizationAnnotator(String dictionaryPath) {
+    this(dictionaryPath, 1);
+  }
 
-		if (annotation.containsKey(CoreAnnotations.SentencesAnnotation.class)) {
-			if (nThreads == 1) {
-				for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-					doOneSentence(sentence);
-				}
-			} else {
-				MulticoreWrapper<CoreMap, CoreMap> wrapper = new MulticoreWrapper<>(nThreads,
-						new LemmatizationProcessor());
-				for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
-					wrapper.put(sentence);
-					while (wrapper.peek()) {
-						wrapper.poll();
-					}
-				}
-				wrapper.join();
-				while (wrapper.peek()) {
-					wrapper.poll();
-				}
-			}
-		} else {
-			throw new RuntimeException("unable to find words/tokens in: " + annotation);
-		}
+  public RussianLemmatizationAnnotator(String dictionaryPath, int numThreads) {
+    if (dict.isEmpty()) {
+      if (dictionaryPath == null) {
+        dictionaryPath = DEFAULT_DICTIONARY_PATH;
+      }
+      loadDictionary(dictionaryPath);
+    }
+    this.nThreads = numThreads;
+  }
 
-	}
+  public RussianLemmatizationAnnotator(String name, Properties props) {
+    this(props.getProperty("custom.lemma.dictionaryPath"));
+  }
 
-	private class LemmatizationProcessor implements ThreadsafeProcessor<CoreMap, CoreMap> {
-		@Override
-		public CoreMap process(CoreMap sentence) {
-			return doOneSentence(sentence);
-		}
+  @Override
+  public void annotate(Annotation annotation) {
 
-		@Override
-		public ThreadsafeProcessor<CoreMap, CoreMap> newInstance() {
-			return this;
-		}
-	}
+    if (annotation.containsKey(CoreAnnotations.SentencesAnnotation.class)) {
+      if (nThreads == 1) {
+        for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
+          doOneSentence(sentence);
+        }
+      } else {
+        MulticoreWrapper<CoreMap, CoreMap> wrapper =
+            new MulticoreWrapper<>(nThreads, new LemmatizationProcessor());
+        for (CoreMap sentence : annotation.get(CoreAnnotations.SentencesAnnotation.class)) {
+          wrapper.put(sentence);
+          while (wrapper.peek()) {
+            wrapper.poll();
+          }
+        }
+        wrapper.join();
+        while (wrapper.peek()) {
+          wrapper.poll();
+        }
+      }
+    } else {
+      throw new RuntimeException("unable to find words/tokens in: " + annotation);
+    }
 
-	private CoreMap doOneSentence(CoreMap sentence) {
-		for (CoreLabel token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
-			if (token.get(LemmaAnnotation.class) == null) {
-				token.setLemma(getLemma(token.originalText(), token.tag()));// getLemma(token.originalText()));
-			}
-		}
+  }
 
-		return sentence;
-	}
+  private class LemmatizationProcessor implements ThreadsafeProcessor<CoreMap, CoreMap> {
+    @Override
+    public CoreMap process(CoreMap sentence) {
+      return doOneSentence(sentence);
+    }
 
-	private String getLemma(String token, String tag) {
-		String lemma = token; // FIXME
-		if (dict.containsKey(token)) {
-			List<Pair<String, String>> tokenList = dict.get(token);
-			if (tokenList.size() == 1) {
-				lemma = tokenList.get(0).first;
-			} else {
-				for (Pair<String, String> value : tokenList) {
-					if (value.second.equals(tag)) {
-						lemma = value.first;
-						break;
-					}
-				}
-			}
-		}
-		return lemma;
-	}
+    @Override
+    public ThreadsafeProcessor<CoreMap, CoreMap> newInstance() {
+      return this;
+    }
+  }
 
-	@Override
-	public Set<Class<? extends CoreAnnotation>> requirementsSatisfied() {
-		return Collections.emptySet(); // singleton(CoreAnnotations.LemmaAnnotation.class);
-	}
+  private CoreMap doOneSentence(CoreMap sentence) {
+    for (CoreLabel token : sentence.get(CoreAnnotations.TokensAnnotation.class)) {
+      if (token.get(LemmaAnnotation.class) == null) {
+        token.setLemma(getLemma(token.originalText(), token.tag()));// getLemma(token.originalText()));
+      }
+    }
 
-	@Override
-	public Set<Class<? extends CoreAnnotation>> requires() {
-		return new ArraySet<Class<? extends CoreAnnotation>>(CoreAnnotations.TextAnnotation.class,
-				CoreAnnotations.TokensAnnotation.class, CoreAnnotations.SentencesAnnotation.class,
-				CoreAnnotations.PartOfSpeechAnnotation.class);
-	}
+    return sentence;
+  }
 
-	public static void main(String[] args) {
-		Properties props = new Properties();
-		props.setProperty("annotators", "tokenize, ssplit");
-		StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-		Annotator ruAnnotator;
-		if(args.length > 0) {
-			ruAnnotator = new RussianLemmatizationAnnotator(args[0]);
-		} else {
-			ruAnnotator = new RussianLemmatizationAnnotator();
-		}
-		pipeline.addAnnotator(ruAnnotator);
+  private String getLemma(String token, String tag) {
+    String lemma = token; // FIXME
+    if (dict.containsKey(token)) {
+      List<Pair<String, String>> tokenList = dict.get(token);
+      if (tokenList.size() == 1) {
+        lemma = tokenList.get(0).first;
+      } else {
+        for (Pair<String, String> value : tokenList) {
+          if (value.second.equals(tag)) {
+            lemma = value.first;
+            break;
+          }
+        }
+      }
+    }
+    return lemma;
+  }
 
-		Annotation annotation1 = pipeline.process("домами");
-		Annotation annotation2 = pipeline.process("книги");
+  @Override
+  public Set<Class<? extends CoreAnnotation>> requirementsSatisfied() {
+    return Collections.emptySet(); // singleton(CoreAnnotations.LemmaAnnotation.class);
+  }
 
-		System.out.println(annotation1.get(TokensAnnotation.class).get(0).get(LemmaAnnotation.class));
-		System.out.println(annotation2.get(TokensAnnotation.class).get(0).get(LemmaAnnotation.class));
-	}
+  @Override
+  public Set<Class<? extends CoreAnnotation>> requires() {
+    return new ArraySet<Class<? extends CoreAnnotation>>(CoreAnnotations.TextAnnotation.class,
+        CoreAnnotations.TokensAnnotation.class, CoreAnnotations.SentencesAnnotation.class,
+        CoreAnnotations.PartOfSpeechAnnotation.class);
+  }
+
+  public static void main(String[] args) {
+    Properties props = new Properties();
+    props.setProperty("annotators", "tokenize, ssplit");
+    StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
+    Annotator ruAnnotator;
+    if (args.length > 0) {
+      ruAnnotator = new RussianLemmatizationAnnotator(args[0]);
+    } else {
+      ruAnnotator = new RussianLemmatizationAnnotator();
+    }
+    pipeline.addAnnotator(ruAnnotator);
+
+    Annotation annotation1 = pipeline.process("домами");
+    Annotation annotation2 = pipeline.process("книги");
+
+    System.out.println(annotation1.get(TokensAnnotation.class).get(0).get(LemmaAnnotation.class));
+    System.out.println(annotation2.get(TokensAnnotation.class).get(0).get(LemmaAnnotation.class));
+  }
 
 }
