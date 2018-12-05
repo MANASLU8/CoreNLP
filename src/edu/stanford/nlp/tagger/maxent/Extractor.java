@@ -51,6 +51,7 @@ import java.io.Serializable;
  */
 public class Extractor implements Serializable  {
 
+
   // /** A logger for this class */
   // private static final Redwood.RedwoodChannels log = Redwood.channels(Extractor.class);
 

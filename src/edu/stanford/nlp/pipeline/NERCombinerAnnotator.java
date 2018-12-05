@@ -1,7 +1,5 @@
 package edu.stanford.nlp.pipeline;
 
-import edu.stanford.nlp.util.logging.Redwood;
-
 import edu.stanford.nlp.ie.NERClassifierCombiner;
 import edu.stanford.nlp.ie.regexp.NumberSequenceClassifier;
 import edu.stanford.nlp.ling.CoreAnnotation;
@@ -11,14 +9,13 @@ import edu.stanford.nlp.ling.tokensregex.types.Tags;
 import edu.stanford.nlp.time.TimeAnnotations;
 import edu.stanford.nlp.time.TimeExpression;
 import edu.stanford.nlp.util.CoreMap;
-import edu.stanford.nlp.util.Pair;
 import edu.stanford.nlp.util.PropertiesUtils;
 import edu.stanford.nlp.util.RuntimeInterruptedException;
+import edu.stanford.nlp.util.logging.Redwood;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.regex.*;
-import java.text.SimpleDateFormat;
+
 
 /**
  * This class will add NER information to an Annotation using a combination of NER models.
@@ -42,8 +39,6 @@ public class NERCombinerAnnotator extends SentenceAnnotator  {
 
   private final boolean VERBOSE;
   private boolean setDocDate = false;
-  private boolean usePresentDateForDocDate = false;
-  private String providedDocDate = "";
 
   private final long maxTime;
   private final int nThreads;
@@ -105,26 +100,10 @@ public class NERCombinerAnnotator extends SentenceAnnotator  {
             NERClassifierCombiner.APPLY_NUMERIC_CLASSIFIERS_PROPERTY,
             NERClassifierCombiner.APPLY_NUMERIC_CLASSIFIERS_DEFAULT);
 
-    boolean applyRegexner =
-        PropertiesUtils.getBool(properties,
-            NERClassifierCombiner.APPLY_GAZETTE_PROPERTY,
-            NERClassifierCombiner.APPLY_GAZETTE_DEFAULT);
-
     boolean useSUTime =
         PropertiesUtils.getBool(properties,
             NumberSequenceClassifier.USE_SUTIME_PROPERTY,
             NumberSequenceClassifier.USE_SUTIME_DEFAULT);
-
-    // option for setting doc date to be the present during each annotation
-    usePresentDateForDocDate =
-        PropertiesUtils.getBool(properties, "ner." + "usePresentDateForDocDate", false);
-
-    // option for setting doc date from a provided string
-    providedDocDate = PropertiesUtils.getString(properties, "ner." + "providedDocDate", "");
-    Pattern p = Pattern.compile("[0-9]{4}\\-[0-9]{2}\\-[0-9]{2}");
-    Matcher m = p.matcher(providedDocDate);
-    if (!m.matches())
-      providedDocDate = "";
 
     NERClassifierCombiner.Language nerLanguage = NERClassifierCombiner.Language.fromString(PropertiesUtils.getString(properties,
         NERClassifierCombiner.NER_LANGUAGE_PROPERTY, null), NERClassifierCombiner.NER_LANGUAGE_DEFAULT);
@@ -141,7 +120,7 @@ public class NERCombinerAnnotator extends SentenceAnnotator  {
       PropertiesUtils.overWriteProperties(combinerProperties, sutimeProps);
     }
     NERClassifierCombiner nerCombiner = new NERClassifierCombiner(applyNumericClassifiers, nerLanguage,
-        useSUTime, applyRegexner, combinerProperties, loadPaths);
+        useSUTime, combinerProperties, loadPaths);
 
     this.nThreads = PropertiesUtils.getInt(properties, "ner.nthreads", PropertiesUtils.getInt(properties, "nthreads", 1));
     this.maxTime = PropertiesUtils.getLong(properties, "ner.maxtime", 0);
@@ -295,7 +274,7 @@ public class NERCombinerAnnotator extends SentenceAnnotator  {
    *
    * @param properties Properties for the DocDateAnnotator sub-annotator
    */
-  public void setUpDocDateAnnotator(Properties properties) throws IOException {
+  private void setUpDocDateAnnotator(Properties properties) throws IOException {
     for (String property : properties.stringPropertyNames()) {
       if (property.length() >= 11 && property.substring(0,11).equals("ner.docdate")) {
         setDocDate = true;
@@ -325,17 +304,6 @@ public class NERCombinerAnnotator extends SentenceAnnotator  {
     if (setDocDate)
       docDateAnnotator.annotate(annotation);
 
-    // if ner.usePresentDateForDocDate is set, use the present date as the doc date
-    if (usePresentDateForDocDate) {
-      String currentDate =
-          new SimpleDateFormat("yyyy-MM-dd").format(Calendar.getInstance().getTime());
-      annotation.set(CoreAnnotations.DocDateAnnotation.class, currentDate);
-    }
-    // use provided doc date if applicable
-    if (!providedDocDate.equals("")) {
-      annotation.set(CoreAnnotations.DocDateAnnotation.class, providedDocDate);
-    }
-    
     super.annotate(annotation);
     this.ner.finalizeAnnotation(annotation);
 
@@ -384,7 +352,7 @@ public class NERCombinerAnnotator extends SentenceAnnotator  {
   }
 
   /** convert Spanish tag content of older models **/
-  public static String spanishToEnglishTag(String spanishTag) {
+  private static String spanishToEnglishTag(String spanishTag) {
     return spanishToEnglishTag.getOrDefault(spanishTag, spanishTag);
   }
 
