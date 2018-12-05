@@ -5,6 +5,7 @@ import edu.stanford.nlp.ling.CoreAnnotations;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
 import edu.stanford.nlp.ling.CoreLabel;
+import edu.stanford.nlp.io.IOUtils;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.Annotator;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
@@ -45,26 +46,21 @@ public class RussianLemmatizationAnnotator implements edu.stanford.nlp.pipeline.
   private final int nThreads;
 
   private static void loadDictionary(String path) {
-    try {
-      BufferedReader br =
-          new BufferedReader(new InputStreamReader(new FileInputStream(path), "UTF-8"));
-      for (String line; (line = br.readLine()) != null;) {
-        String[] ln = line.split("\t");
-        Pair<String, String> lemmaTag = new Pair<String, String>(ln[1], ln[2]);
-        if (dict.containsKey(ln[0])) {
-          List<Pair<String, String>> dlist = dict.get(ln[0]);
-          if (!dlist.contains(lemmaTag)) {
-            dlist.add(lemmaTag);
-          }
-        } else {
-          List<Pair<String, String>> lst = new ArrayList<Pair<String, String>>();
-          lst.add(lemmaTag);
-          dict.put(ln[0], lst);
+    List<String> lemmaLines = IOUtils.linesFromFile(path);
+    for (String line : lemmaLines) {
+      String[] ln = line.split("\t");
+      Pair<String, String> lemmaTag = new Pair<String, String>(ln[1], ln[2]);
+      if (dict.containsKey(ln[0])) {
+        List<Pair<String, String>> dlist = dict.get(ln[0]);
+        if (!dlist.contains(lemmaTag)) {
+          dlist.add(lemmaTag);
         }
+      } else {
+        List<Pair<String, String>> lst = new ArrayList<Pair<String, String>>();
+        lst.add(lemmaTag);
+        dict.put(ln[0], lst);
       }
-    } catch (IOException e) {
-      log.error(e.getMessage(), e);
-    }
+    } 
   }
 
   public RussianLemmatizationAnnotator() {
