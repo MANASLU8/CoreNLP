@@ -8,3 +8,13 @@ Notes: These embeddings were used in the training of the Spanish dependency pars
 URL: http://crscardellino.me/SBWCE/
 
 License: Creative Commons Attribution-ShareAlike 4.0 International License
+
+-----------------------------------------------------------------
+
+These resources were used in the creation of the Russian pipeline for Stanford CoreNLP:
+
+1) A.A.Zaliznyak’s Russian Grammatical Dictionary was used for lemmatization. At the moment it is freely distributed at http://starling.rinet.ru/downl.php?lan=en#soft, no data about the license were found.
+2) An extension of Zaliznyak’s dictionary is  freely distributed at http://odict.ru under CC-BY-SA 3.0 license.
+3) SynTagRus treebank, automatically converted to UD v.2, is published for CoNLL-2017 Shared Task, under CC-BY-SA 3.0 license according to https://lindat.mff.cuni.cz/repository/xmlui/page/licence-UD-2.0 page.
+4) Aranea Russicum Russicum Maius corpus, developed by Vladimir Benko, is distributed at http://ucts.uniba.sk/aranea_about/.
+5) Wikipedia Corpus, distributed under CC-BY-SA 3.0 license at https://en.wikipedia.org/wiki/Wikipedia:Database_download.

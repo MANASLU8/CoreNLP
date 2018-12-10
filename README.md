@@ -63,3 +63,88 @@ For information about making contributions to Stanford CoreNLP, see the file [CO
 
 Questions about CoreNLP can either be posted on StackOverflow with the tag [stanford-nlp](http://stackoverflow.com/questions/tagged/stanford-nlp),
   or on the [mailing lists](https://nlp.stanford.edu/software/#Mail).
+
+
+# Russian CoreNLP
+
+1. General Information about the Russian Language Pipeline for Stanford CoreNLP
+Russian pipeline for Stanford CoreNLP provides morphological analysis (POS-tags, morphological features, lemmatization) and dependency parsing (neural dependency parsing) models, trained with Stanford CoreNLP algorithms. Tokenizer and sentence splitter are default ones, provided by CoreNLP tool.
+The pipeline also includes several special classes for integration with Stanford CoreNLP and performing lemmatization.
+The Stanford CoreNLP pipeline for Russian language code is written in Java and licensed under the GNU General Public License (v3 or later). Third-party licenses are listed in [RESOUCES-LICENSE.md](https://github.com/MANASLU8/CoreNLP/blob/master/RESOURCE-LICENSES "https://github.com") file.
+
+2. Build Instructions
+Follow instructions for building Stanford CoreNLP.
+
+3. Models and Resources
+
+    Resources include 2 models for morphological analysis, 2 models for dependency parsing and a dictionary for lemmatization with vanilla ambiguity resolution. Models, supplied for morphological analysis, include:
+* russian-ud.tagger - tagging model, which labels input text with part-of-speech-tags only according to Universal Dependencies v2 tagset, model training parameters are listed in russian-ud.tagger.props. Accuracy of POS-tagging is 97.92.
+* russian-ud-mf.tagger - tagging model, which labels input text with morphological features, both according to Universal Dependencies v2 tagset, model training parameters are listed in russian-ud-mf.tagger.props. Accuracy of morphological features labeling is 86.30.
+* dict.tsv - file with resources for lemmatization. 
+
+
+  Models, supplied for dependency parsing, include:
+* nndep.rus.model.wiki.txt.gz - dependency parsing model, which outputs a dependency tree, labeled with syntactic relations according to Universal Dependencies 2.0. The model was trained with embeddings, trained on Wikipedia corpus. UAS = 81.7314, LAS = 77.3084.  
+* nndep.rus.model.ar.txt.gz - dependency parsing model, which outputs a dependency tree, labeled with syntactic relations according to Universal Dependencies 2.0. The model was trained with  embeddings, trained on Aranea corpus. UAS = 81.6326, LAS = 77.1235.
+Both models show comparable quality, although nndep.rus.model.wiki.txt.gz is preferrable to start with.
+ 
+4. Running Instructions
+Annotators and default models’ and resources’ paths are listed in ‘StanfordCoreNLP-russian.properties’ file, which is given below:
+
+```
+# annotators
+annotators = tokenize, ssplit, pos, custom.lemma, custom.morpho, depparse
+
+# tokenize
+# tokenize.language = en
+
+# pos.model
+pos.model = edu/stanford/nlp/models/pos-tagger/russian-ud-pos.tagger
+
+# lemma
+customAnnotatorClass.custom.lemma = edu.stanford.nlp.international.russian.process.RussianLemmatizationAnnotator
+custom.lemma.dictionaryPath = edu/stanford/nlp/international/russian/process/dict.tsv
+
+# morpho
+customAnnotatorClass.custom.morpho = edu.stanford.nlp.international.russian.process.RussianMorphoAnnotator
+custom.morpho.model = edu/stanford/nlp/models/pos-tagger/russian-ud-mf.tagger
+
+# depparse
+depparse.model    = edu/stanford/nlp/models/parser/nndep/nndep.rus.model.wiki.txt.gz
+depparse.language = russian
+```
+  
+The whole pipeline, including full morphological analysis (POS-tagging, morpho features, lemmatization) and parsing can be run with a command: 
+
+* Using properties file:
+```
+java -Xmx5g edu.stanford.nlp.pipeline.StanfordCoreNLP -props StanfordCoreNLP-russian.properties -file ru_example.txt -outputFormat conllu
+```
+
+* Using Launcher: 
+```
+java -Xmx5g edu.stanford.nlp.international.russian.process.Launcher -mf
+```
+
+
+5. [Models](https://github.com/MANASLU8/CoreNLPRusModels "https://github.com"): 
+* [Parser models](https://drive.google.com/drive/folders/0B4TmAgcGLMriS3hhTkV5VEFPVEU?usp=sharing "drive.google")
+* [Tagger models and lemmatization resources](https://drive.google.com/drive/folders/0B4TmAgcGLMriMG96cFZSSWhWcEU?usp=sharing "drive.google")
+
+If you find the pipeline useful in your research, please consider citing our paper:
+
+```
+@inproceedings{DBLP:conf/kesw/KovriguinaSSP17,
+  author    = {Liubov Kovriguina and
+               Ivan Shilin and
+               Alexander Shipilo and
+               Alina Putintseva},
+  title     = {Russian Tagging and Dependency Parsing Models for Stanford CoreNLP
+               Natural Language Toolkit},
+  booktitle = {Knowledge Engineering and Semantic Web - 8th International Conference,
+               {KESW} 2017, Szczecin, Poland, November 8-10, 2017, Proceedings},
+  pages     = {101--111},
+  year      = {2017},
+  doi       = {10.1007/978-3-319-69548-8\_8}
+}
+```
