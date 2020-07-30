@@ -745,6 +745,9 @@ public class StringUtils  {
     return trimWithEllipsis(o.toString(), width);
   }
 
+  public static String removeLastNChars(String s, int n) {
+    return s.substring(0, s.length() - n);
+  }
 
   public static String repeat(String s, int times) {
     if (times == 0) {
@@ -1661,6 +1664,22 @@ public class StringUtils  {
    */
   public static boolean isCapitalized(String s) {
     return (Character.isUpperCase(s.charAt(0)));
+  }
+
+  /**
+   * Check if all of the letters in a string are capitalized.
+   *
+   * @param s a string
+   * @return true if all of the letters in s are capitalized
+   *         false otherwise
+   */
+  public static boolean isAllUpper(String s) {
+    for (char c : s.toCharArray()) {
+      if (Character.isLetter(c) && Character.isLowerCase(c)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static String searchAndReplace(String text, String from, String to) {

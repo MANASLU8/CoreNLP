@@ -148,3 +148,28 @@ If you find the pipeline useful in your research, please consider citing our pap
   doi       = {10.1007/978-3-319-69548-8\_8}
 }
 ```
+
+## Running ChangeGender
+
+The `ChangeGender` class takes as input (via stdin) any Russian text and outputs (via stdout) a modified version of 
+that same text with the grammatical gender of the speaker and addressee modified to match the specified genders. To run
+this class:
+1. Build the project: `cd CoreNLP ; ant`
+2. Download the dependencies:
+    1. Download a model from the [Parser models page](https://drive.google.com/drive/folders/0B4TmAgcGLMriS3hhTkV5VEFPVEU?usp=sharing "drive.google"). `nndep.rus.modelMFWiki100HS400_80.txt.gz` is a recommended model to use, which uses embeddings trained from a Wikipedia dump.
+    2. Download `russian-ud-pos.tagger`, `russian-ud-mf.tagger`, and `dict.tsv` from the  [Tagger models and lemmatization resources page](https://drive.google.com/drive/folders/0B4TmAgcGLMriMG96cFZSSWhWcEU?usp=sharing "drive.google")
+
+3. Run edu.stanford.nlp.international.russian.process.ChangeGender. This class takes the following arguments 
+Obligatory Launcher parameters are the following:  
+    * `-tagger` - path of the POS-tagging model
+    * `-taggerMF` - path of the POS-tagging model
+    * `-parser` - path of the dependency parser model
+    * `-pLemmaDict` - path of the dict.tsv file
+    * `-speakerIsMale` - if set, the input is adjusted for a male speaker ("I"), if not set, it is adjusted for a female speaker
+    * `-addresseeIsMale` - if set, the input is adjusted for a male addressee ("you"), if not set, it is adjusted for a female speaker
+
+Here is an example command, which assumes all of the dependencies are in the same directory that the command is run 
+from:  
+```bash
+echo "Анатолий, Да, ты прав. Го на забив" | java -Xmx8g edu.stanford.nlp.international.russian.process.ChangeGender -tagger russian-ud-pos.tagger -taggerMF russian-ud-mf.tagger -pLemmaDict dict.tsv -parser nndep.rus.modelMFWiki100HS400_80.txt.gz
+```
