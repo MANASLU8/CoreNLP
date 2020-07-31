@@ -201,6 +201,8 @@ public class ChangeGender {
             {"ист", "истка"}, {"ец", "ка"}, {"ин", "ка"}, {"", "ка"}
     };*/
 
+    public enum TargetGender {FEM, MASC, UNCHANGED};
+
     public static void main(String[] args) throws IOException {
         Properties pr = StringUtils.argsToProperties(args);
         StanfordCoreNLP pipeline = getStanfordCoreNLP(pr);
@@ -220,8 +222,12 @@ public class ChangeGender {
             outputStringBuilder.append(line);
             outputStringBuilder.append("\n");
         }
-        System.out.println(adjustGenderForSentence(speakerIsMale, addresseeIsMale, pipeline,
-                                                   outputStringBuilder.toString()));
+        System.out.println(
+                adjustGenderForText(
+                        outputStringBuilder.toString(), speakerIsMale ? TargetGender.MASC : TargetGender.FEM,
+                        addresseeIsMale ? TargetGender.MASC : TargetGender.FEM,
+                        pipeline
+                ));
     }
 
     private static boolean isFirstOrSecondPersonSingularVerb(AnnotatedToken annotatedToken, String person) {
@@ -229,17 +235,45 @@ public class ChangeGender {
                 Objects.equals(annotatedToken.features.get("Number"), "Sing");
     }
 
+    private static boolean isFirstPersonSingularVerb(AnnotatedToken annotatedToken, String person) {
+        return Objects.equals(annotatedToken.pos, "VERB") &&
+                Objects.equals(person, "1") &&
+                Objects.equals(annotatedToken.features.get("Number"), "Sing");
+    }
+
+    private static boolean isSecondPersonSingularVerb(AnnotatedToken annotatedToken, String person) {
+        return Objects.equals(annotatedToken.pos, "VERB") &&
+                Objects.equals(person, "2") &&
+                Objects.equals(annotatedToken.features.get("Number"), "Sing");
+    }
+
     private static boolean isFirstOrSecondPersonSubjectPronoun(AnnotatedToken annotatedToken) {
         return RELEVANT_PRONOUNS.contains(annotatedToken.lemma) && Objects.equals(annotatedToken.relnName, "nsubj");
     }
 
-    public static String adjustGenderForSentence(boolean speakerIsMale, boolean addresseeIsMale, StanfordCoreNLP pipeline, String line) {
+    private static boolean isFirstPersonSubjectPronoun(AnnotatedToken annotatedToken) {
+        return "я".equals(annotatedToken.lemma) && Objects.equals(annotatedToken.relnName, "nsubj");
+    }
+
+    private static boolean isSecondPersonSubjectPronoun(AnnotatedToken annotatedToken) {
+        return "ты".equals(annotatedToken.lemma) && Objects.equals(annotatedToken.relnName, "nsubj");
+    }
+
+    public static String adjustSpeakerGenderForText(String text, TargetGender targetSpeakerGender, StanfordCoreNLP pipeline) {
+        return adjustGenderForText(text, targetSpeakerGender, TargetGender.UNCHANGED, pipeline);
+    }
+
+    public static String adjustAddresseeGenderForText(String text, TargetGender targetAddresseeGender, StanfordCoreNLP pipeline) {
+        return adjustGenderForText(text, TargetGender.UNCHANGED, targetAddresseeGender, pipeline);
+    }
+
+    public static String adjustGenderForText(String text, TargetGender targetSpeakerGender, TargetGender targetAddresseeGender, StanfordCoreNLP pipeline) {
         int lastCharacterIndexEnd;
         StringBuilder outputStringBuilder = new StringBuilder();
-        if (!line.isEmpty()) {
+        if (!text.isEmpty()) {
             lastCharacterIndexEnd = 0;
 
-            Annotation annotation = pipeline.process(line);
+            Annotation annotation = pipeline.process(text);
 
             List<CoreMap> sentences = annotation.get(CoreAnnotations.SentencesAnnotation.class);
             for (CoreMap sentence : sentences) {
@@ -248,48 +282,71 @@ public class ChangeGender {
                 ParsedSentence parsedSentence = getParsedSentence(sentence);
                 for (AnnotatedToken annotatedToken : parsedSentence.annotatedTokens) {
                     String person = annotatedToken.features.get("Person");
-                    if (isFirstOrSecondPersonSingularVerb(annotatedToken, person)) {
-                        tokensToAdjust.put(annotatedToken.tokenIndex,
-                                           Objects.equals(person, "1") ? speakerIsMale : addresseeIsMale);
-                        // See https://universaldependencies.org/u/dep/index.html for descriptions of the dependency
-                        // relations
-                    } else if (isFirstOrSecondPersonSubjectPronoun(annotatedToken)) {
-                        tokensToAdjust.put(annotatedToken.govIdx,
-                                           Objects.equals(annotatedToken.lemma, "я") ? speakerIsMale :
-                                                                                          addresseeIsMale);
+                    if (targetSpeakerGender != TargetGender.UNCHANGED) {
+                        addSpeakerToken(annotatedToken, targetSpeakerGender.equals(TargetGender.MASC), person, tokensToAdjust);
+                    }
+                    if (targetAddresseeGender != TargetGender.UNCHANGED) {
+                        addAddresseeToken(annotatedToken, targetAddresseeGender.equals(TargetGender.MASC), person, tokensToAdjust);
                     }
 
-                    Map<Integer, Boolean> newTokensToAdjust = new HashMap<>();
-                    for (Map.Entry<Integer, Boolean> entry : tokensToAdjust.entrySet()) {
-                        List<Arc> outgoingArcs = parsedSentence.outgoingArcs.get(entry.getKey());
-                        if (outgoingArcs != null) {
-                            for (Arc outgoingArc : outgoingArcs) {
-                                if (RELATIONS.contains(outgoingArc.relnName) ||
-                                        (Objects.equals(outgoingArc.relnName, "obl") &&
-                                                Objects.equals(parsedSentence.annotatedTokens.get(outgoingArc.tokenIndex).lemma,
-                                                        "сам"))) {
-                                    newTokensToAdjust.put(outgoingArc.tokenIndex, entry.getValue());
-                                }
-                            }
-                        }
-                    }
+                    // Identify additional tokens requiring gender change due to their relation to the subject or verb tokens
+                    Map<Integer, Boolean> newTokensToAdjust = processRelatedTokens(tokensToAdjust, parsedSentence);
 
                     tokensToAdjust.putAll(newTokensToAdjust);
                 }
 
+                // Adjust the gender of selected tokens
                 for (Integer tokenIndex : tokensToAdjust.keySet()) {
                     AnnotatedToken tokenToAdjust = parsedSentence.annotatedTokens.get(tokenIndex);
                     String newToken = adjustGenderForToken(tokenToAdjust, tokensToAdjust.get(tokenIndex));
                     if (newToken != null) {
-                        outputStringBuilder.append(line, lastCharacterIndexEnd, tokenToAdjust.characterStartIndex);
+                        outputStringBuilder.append(text, lastCharacterIndexEnd, tokenToAdjust.characterStartIndex);
                         outputStringBuilder.append(newToken);
                         lastCharacterIndexEnd = tokenToAdjust.characterEndIndex;
                     }
                 }
             }
-            outputStringBuilder.append(line.substring(lastCharacterIndexEnd));
+            outputStringBuilder.append(text.substring(lastCharacterIndexEnd));
         }
         return outputStringBuilder.toString();
+    }
+
+    public static void addSpeakerToken(AnnotatedToken annotatedToken, boolean toMasculine, String person, SortedMap<Integer, Boolean> tokensToAdjust) {
+        if (isFirstPersonSingularVerb(annotatedToken, person)) {
+            tokensToAdjust.put(annotatedToken.tokenIndex, toMasculine);
+            // See https://universaldependencies.org/u/dep/index.html for descriptions of the dependency
+            // relations
+        } else if (isFirstPersonSubjectPronoun(annotatedToken)) {
+            tokensToAdjust.put(annotatedToken.govIdx, toMasculine);
+        }
+    }
+
+    public static void addAddresseeToken(AnnotatedToken annotatedToken, boolean toMasculine, String person, SortedMap<Integer, Boolean> tokensToAdjust) {
+        if (isSecondPersonSingularVerb(annotatedToken, person)) {
+            tokensToAdjust.put(annotatedToken.tokenIndex, toMasculine);
+            // See https://universaldependencies.org/u/dep/index.html for descriptions of the dependency
+            // relations
+        } else if (isSecondPersonSubjectPronoun(annotatedToken)) {
+            tokensToAdjust.put(annotatedToken.govIdx, toMasculine);
+        }
+    }
+
+    public static Map<Integer, Boolean> processRelatedTokens(SortedMap<Integer, Boolean> originalTokens, ParsedSentence parsedSentence) {
+        Map<Integer, Boolean> newTokensToAdjust = new HashMap<>();
+        for (Map.Entry<Integer, Boolean> entry : originalTokens.entrySet()) {
+            List<Arc> outgoingArcs = parsedSentence.outgoingArcs.get(entry.getKey());
+            if (outgoingArcs != null) {
+                for (Arc outgoingArc : outgoingArcs) {
+                    if (RELATIONS.contains(outgoingArc.relnName) ||
+                            (Objects.equals(outgoingArc.relnName, "obl") &&
+                                    Objects.equals(parsedSentence.annotatedTokens.get(outgoingArc.tokenIndex).lemma,
+                                            "сам"))) {
+                        newTokensToAdjust.put(outgoingArc.tokenIndex, entry.getValue());
+                    }
+                }
+            }
+        }
+        return newTokensToAdjust;
     }
 
     public static StanfordCoreNLP getStanfordCoreNLP(Properties pr) {

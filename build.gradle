@@ -39,6 +39,19 @@ sourceSets {
     java.srcDirs = ['src/']
     resources.srcDirs = ['src/']
   }
+    test {
+        java {
+            srcDirs = ['test/src']
+        }
+        resources {
+            srcDirs = ['test/resources']
+        }
+    }
+}
+
+test {
+    minHeapSize = "1024m"
+    maxHeapSize = "4096m"
 }
 
 task listDeps {
@@ -64,6 +77,6 @@ eclipse {
   }
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.2'
-}
+//task wrapper(type: Wrapper) {
+//    gradleVersion = '3.2'
+//}
